@@ -26,6 +26,7 @@ class TestWGS84(unittest.TestCase):
                   '      AXIS["ellipsoidal height (h)",up,LENGTHUNIT["metre",1.0]]]\n')
         print(geodcrs.wktcrs(1))
         print(output)
+        print(geodcrs.wktcrs_strict())
         self.assertEqual(geodcrs.wktcrs(1), output)
         
      

@@ -325,3 +325,16 @@ class GeodeticCRS(object):
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
                                 datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
         return result
+
+    def wktcrs_strict(self):
+        """
+        Return the strict Well Known Text Coordinate Reference System string,
+        with no extraneous white space.
+
+        """
+        result = ''
+        for line in self.wktcrs().split('\n'):
+            result = result + line.lstrip()
+        return result
+
+        
