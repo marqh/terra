@@ -1,4 +1,6 @@
+import copy
 
+import cartopy
 
 class Unit(object):
     def __init__(self, name, scaling):
@@ -141,29 +143,93 @@ class CSystem(object):
         return result
 
 
-class Ellipsoid(object):
+class Ellipsoid(cartopy.crs.Globe):
     """"""
-    def __init__(self, name='', semi_major_axis=None, inverse_flattening=0, lunit=None):
-        """Create an Ellipsoid""" 
+    def __init__(self, name='', semimajor_axis=None, inverse_flattening=0, lunit=None):
+        """
+        Create an Ellipsoid
+        
+        Kwargs:
+
+            * name - String.
+            * semimajor_axis - String or Int, a string will be preserved.
+            * inverse_flattening - String or Int, a string will be preserved.
+            * lunit - :class:`Unit` instance.
+
+        """ 
         self.name = name
-        self.semi_major_axis = semi_major_axis
+        self.semimajor_axis = semimajor_axis
         self.inverse_flattening = inverse_flattening
         self.lunit = lunit
+
+    @property
+    def semimajor_axis(self):
+        return float(self._semimajor_axis)
+
+    @semimajor_axis.setter
+    def semimajor_axis(self, smi):
+        self._semimajor_axis = smi
+
+    @property
+    def semimajor_axis_string(self):
+        return str(self._semimajor_axis)
+
+    @property
+    def inverse_flattening(self):
+        return float(self._inverse_flattening)
+
+    @inverse_flattening.setter
+    def inverse_flattening(self, smi):
+        self._inverse_flattening = smi
+
+    @property
+    def inverse_flattening_string(self):
+        return str(self._inverse_flattening)
+
+    @property
+    def ellipse(self):
+        return self.wkt2proj.get(self.name)
+
+    @property
+    def wkt2proj(self):
+        return {'WGS 84': 'WGS84'}
+
+    @property
+    def flattening(self):
+        if self.inverse_flattening == 0:
+            result = 0
+        else:
+            result = 1 / self.inverse_flattening
+        return result
+    
 
     def wktcrs(self, ind=0):
         pattern = ('{ind}ELLIPSOID["{name}",{sma},{ifl},\n'
                    '{ind}  {unit}]')
-        result = pattern.format(ind=ind*'  ', name=self.name, sma=self.semi_major_axis,
-                                ifl=self.inverse_flattening, unit=self.lunit.wktcrs(ind+1))
+        result = pattern.format(ind=ind*'  ', name=self.name, sma=self.semimajor_axis_string,
+                                ifl=self.inverse_flattening_string, unit=self.lunit.wktcrs(ind+1))
         return result
 
 
-class Datum(object):
+class GeodeticDatum(cartopy.crs.Geodetic):
     """"""
     def __init__(self, name='', ellipsoid=None):
         """Create a Datum."""
         self.name = name
         self.ellipsoid = ellipsoid
+
+    @property
+    def globe(self):
+        """Return a copy of the ellipsoid with the proj4 datum defined from the :class:`Datum` name."""
+        ellipsoid = copy.copy(self.ellipsoid)
+        if ellipsoid is not None:
+            ellipsoid.datum = self.wkt2proj.get(self.name)
+        return ellipsoid
+
+    @property
+    def wkt2proj(self):
+        return {'World Geodetic System 1984': 'WGS84'}
+
 
     def wktcrs(self, ind=0):
         pattern = ('{ind}DATUM["{name}",\n'
@@ -172,15 +238,12 @@ class Datum(object):
         return result
 
 
-class GeodeticDatum(Datum):
-    pass
 
 
-
-class CRS(object):
-    pass
-
-
+# geodetic
+## Cartesian 3
+## ellipsoidal 2 or 3
+## spherical 	3
 # projected
 ## Cartesian 2
 # vertical
@@ -201,7 +264,7 @@ class CRS(object):
 ## time 1 
 
 
-class GeodeticCRS(CRS):
+class GeodeticCRS(object):
     """
     A geodetic coordinate reference system.
     """
@@ -262,18 +325,3 @@ class GeodeticCRS(CRS):
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
                                 datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
         return result
-
-
-#     def __str__(self):
-#         replacements = dict((('<geodetic crs keyword>', self.geodetic_crs_keyword),
-#                              ('<crs name>', '"{}"'.format(self.crs_name))))
-#         return wktformat(self.geodetic_crs, replacements)
-
-# def wktformat(pattern_string, replacements):
-#     updates = dict((('<left delimiter>', '['), ('<right delimiter>', ']'),
-#                     ('<wkt separator>', ','), ('<scope extent identifier remark>', '')))
-#     updates.update(replacements)
-#     result = pattern_string
-#     for key, value in updates.iteritems():
-#         result = result.replace(key, value)
-#     return result
