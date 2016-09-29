@@ -264,7 +264,32 @@ class GeodeticDatum(cartopy.crs.Geodetic):
 ## time 1 
 
 
-class GeodeticCRS(object):
+class CRS(object):
+    def __init__(self, name='', datum=None, coord_system=None):
+        """
+        Kwargs:
+
+            * name
+            * datum
+            * coord_system
+
+        """
+        self.crs_name = name
+        self.datum = datum
+        self.coord_system = coord_system
+
+    def wktcrs_strict(self):
+        """
+        Return the strict Well Known Text Coordinate Reference System string,
+        with no extraneous white space.
+
+        """
+        result = ''
+        for line in self.wktcrs().split('\n'):
+            result = result + line.lstrip()
+        return result
+
+class GeodeticCRS(CRS):
     """
     A geodetic coordinate reference system.
     """
@@ -279,36 +304,15 @@ class GeodeticCRS(object):
                         ('ellipsoidal', set((2, 3))),
                         ('spherical', set((3,)))))
 
-    def __init__(self, name='', datum=None, coord_system=None):
-        """
-        Kwargs:
-
-            * name
-            * datum
-            * coord_system
-
-        """
-        self.crs_name = name
-        self.datum = datum
-        self.coord_system = coord_system
 
     @property
     def geodetic_datum(self):
-        return self._gd
+        return self.datum
     @geodetic_datum.setter
     def geodetic_datum(self, gd):
         if not (isinstance(gd, GeodeticDatum) or None):
             raise TypeError('GeodeticDatum required, {} provided'.format(str(gd)))
-        self._gd = gd
-
-    @property
-    def coord_system(self):
-        return self._cs
-    @coord_system.setter
-    def coord_system(self, cs):
-        if not (isinstance(cs, CSystem) or None):
-            raise TypeError('CSystem required, {} provided'.format(str(gd)))
-        self._cs = cs
+        self.datum = gd
 
     def wktcrs(self, ind=0):
         output = ('   GEODCRS["WGS 84",\n'
@@ -325,16 +329,3 @@ class GeodeticCRS(object):
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
                                 datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
         return result
-
-    def wktcrs_strict(self):
-        """
-        Return the strict Well Known Text Coordinate Reference System string,
-        with no extraneous white space.
-
-        """
-        result = ''
-        for line in self.wktcrs().split('\n'):
-            result = result + line.lstrip()
-        return result
-
-        
