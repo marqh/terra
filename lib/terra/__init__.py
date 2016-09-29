@@ -289,6 +289,12 @@ class CRS(object):
             result = result + line.lstrip()
         return result
 
+    def as_cartopy_crs(self):
+        result = self.datum
+        if not isinstance(result, cartopy.CRS):
+            raise TypeError('This CRS cannot return a cartopy CRS.')
+        return result
+
 class GeodeticCRS(CRS):
     """
     A geodetic coordinate reference system.
