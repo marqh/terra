@@ -142,6 +142,14 @@ class CSystem(object):
                                 axes=axes_string)
         return result
 
+    def validate(self, exceptions=None):
+        if exceptions is None:
+            exceptions = []
+        if self.dimension != len(self.axes):
+            msg = ('The list of axes:\n{} must be the same length as the dimension value '
+                   'of the CSystem: {}'.format(self.axes, self.dimension))
+            exceptions.append(ValueError(msg))
+        return exceptions
 
 class Ellipsoid(cartopy.crs.Globe):
     """"""
@@ -295,6 +303,20 @@ class CRS(object):
             raise TypeError('This CRS cannot return a cartopy CRS.')
         return result
 
+    def validate(self, exceptions=None):
+        if exceptions is None:
+            exceptions = []
+        if self.coord_system is not None:
+            if self.coord_system.name not in self.allowed_cs_names:
+                msg = ('The coord system must be one of the allowed names')
+                exceptions.append(ValueError(msg))
+            if self.coord_system.dimension not in self.allowed_dimension_size.get(self.coord_system.name):
+                msg = ('The coord system dimension size must be allowed for the coord system name.')
+                exceptions.append(ValueError(msg))
+            exceptions = exceptions + self.coord_system.validate()
+        return exceptions
+
+
 class GeodeticCRS(CRS):
     """
     A geodetic coordinate reference system.
@@ -335,3 +357,11 @@ class GeodeticCRS(CRS):
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
                                 datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
         return result
+
+    def allowed_coord_names(self):
+        return self.allowed_dimension_size.keys()
+
+    def allowed_dimension_size(self):
+        return {'Cartesian': set(3,),
+                'ellipsoidal': set(2, 3),
+                'spherical': set(3)}
