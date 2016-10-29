@@ -1,4 +1,4 @@
-Terra: With Respect To That
+Terra: with respect to that
 ===========================
 
 Terra is a Python library supporting the statement that a 

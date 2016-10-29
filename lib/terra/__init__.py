@@ -3,6 +3,8 @@ import re
 
 import cartopy
 
+__version__ = '0.2'
+
 class Unit(object):
     """The definition of a base unit of measure, with a scaling factor to convert to SI units."""
     def __init__(self, name, scaling):
@@ -72,7 +74,7 @@ class Axis(object):
 
     def nameabbv(self):
         if self.name and self.abbreviation:
-            result = '{} ({})'.format(self.name, self.abbreviation)
+            result = '{} {}'.format(self.name, self.abbreviation)
         elif self.name:
             result = self.name
         elif self.abbreviation:
@@ -92,6 +94,20 @@ class Axis(object):
                                 unit=str(self.unit))
         return result
 
+    wkt_pattern = re.compile('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,'
+                             '(?P<dir>\w+)\s*,\s*(?P<unit>\w*UNIT\[.+\])\s*')
+    name_abbv_pattern = re.compile('"([\s\w]*)(\(?\w*\)?)"')
+    @classmethod
+    def parse_wktcrs(cls, wktcrs_string, strict=False):
+        match = cls.wkt_pattern.match(wktcrs_string)
+        ax = None
+        if match:
+            na_match = cls.name_abbv_pattern.match(match.group('nameabbv'))
+            name = na_match.groups()[0]
+            abbv = na_match.groups()[1]
+            ax = cls(name=name, abbreviation=abbv, direction=match.group('dir'), unit=None)
+        return ax
+ 
 
 class CSystem(object):
     CSTYPES = set(('affine', 'Cartesian', 'cylindrical', 'ellipsoidal', 'linear',
@@ -155,14 +171,16 @@ class CSystem(object):
             exceptions.append(ValueError(msg))
         return exceptions
 
-    wkt_pattern = re.compile('CS\[(?P<name>\w+)\s*,\s*(?P<dim>[0-9\.]+)\](?P<axes>.+)')
+    wkt_pattern = re.compile('CS\[(?P<cstype>\w+)\s*,\s*(?P<dim>[0-9\.]+)\],(?P<axes>.+)')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
         match = cls.wkt_pattern.match(wktcrs_string)
         cs = None
         if match:
-            axes = [Axes.parse_wktcrs(match.group('axes')
-            cs = CSystem(cstype, dimension, identifier, axes):
+            ax_list = re.findall('\s*(AXIS\[.+?\]\]),?\s*', match.group('axes'))
+            axes = [Axis.parse_wktcrs(ax) for ax in ax_list]
+            cs = cls(match.group('cstype'), match.group('dim'),
+                     identifier='', axes=axes)
         return cs
 
 class Ellipsoid(cartopy.crs.Globe):
@@ -238,7 +256,7 @@ class Ellipsoid(cartopy.crs.Globe):
                              '\]')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string, strict=strict)
+        match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
         ellipsoid = None
         if match:
             ellipsoid = Ellipsoid(name=name, semimajor_axis=smax,
@@ -268,19 +286,22 @@ class GeodeticDatum(cartopy.crs.Geodetic):
 
 
     def wktcrs(self, ind=0):
-        pattern = ('{ind}DATUM["{name}",\n'
+        pattern = ('{ind}DATUM[{name},\n'
                    '{ind}  {ellp}],\n')
-        result = pattern.format(ind=ind*'  ', name=self.name, ellp=self.ellipsoid.wktcrs(1))
+        ellp = None
+        if self.ellipsoid is not None:
+            ellp = self.ellipsoid.wktcrs(1)
+        result = pattern.format(ind=ind*'  ', name=self.name, ellp=ellp)
         return result
 
     wkt_pattern = re.compile('DATUM\[(?P<name>"[a-zA-Z0-9 ]+")'
                              '(?P<ellps>.+)\]')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string, strict=strict)
+        match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
         gd = None
         if match:
-            ellipsoid = Ellipsoid.parse_wktcrs(match.group('ellipsoid'), strict)
+            ellipsoid = Ellipsoid.parse_wktcrs(match.group('ellps'), strict)
             gd = GeodeticDatum(name=match.group('name'), ellipsoid=ellipsoid)
         return gd
 
@@ -393,7 +414,7 @@ class GeodeticCRS(CRS):
                   '       AXIS["(lat)",north,ANGLEUNIT["degree",0.0174532925199433]],\n'
                   '       AXIS["(lon)",east,ANGLEUNIT["degree",0.0174532925199433]],\n'
                   '       AXIS["ellipsoidal height (h)",up,LENGTHUNIT["metre",1.0]]]\n')
-        pattern = ('{ind}{crs_kw}["{name}",\n'
+        pattern = ('{ind}{crs_kw}[{name},\n'
                    '{ind}{datum}'
                    '{ind}{cs}]\n')
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
