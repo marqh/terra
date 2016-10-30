@@ -5,8 +5,9 @@ import cartopy
 
 __version__ = '0.2'
 
-class Unit(object):
+class BaseUnit(object):
     """The definition of a base unit of measure, with a scaling factor to convert to SI units."""
+    ustring = 'UNIT'
     def __init__(self, name, scaling):
         """
         Args:
@@ -19,33 +20,43 @@ class Unit(object):
         self.scaling = scaling
 
     def __str__(self):
-        return 'UNIT["{n}",{s}]'.format(n=self.name, s=self.scaling)
+        return '{u}["{n}",{s}]'.format(u=self.ustring, n=self.name, s=self.scaling)
+
+    def __repr__(self):
+        return self.__str__()
 
     def wktcrs(self, ind=0):
-        pattern = '{ind}UNIT["{n}",{s}]'
-        result = pattern.format(ind=ind*'  ', n=self.name, s=self.scaling)
+        pattern = '{ind}{u}["{n}",{s}]'
+        result = pattern.format(ind=ind*'  ', u=self.ustring, n=self.name, s=self.scaling)
         return result
 
+    @property
+    def scaling_factor(self):
+        """Floating point representation of the defined scaling factor to convert to SI units."""
+        return float(self.scaling)
 
-class AngleUnit(Unit):
+    wkt_pattern = re.compile('(?P<utype>\w+)\["(?P<ustr>[\w\s0-9\.\-]+)"\s*,\s*(?P<sfactor>[0-9\.]+)\]')
+
+    @classmethod
+    def parse_wktcrs(cls, wktcrs_string, strict=False):
+        match = cls.wkt_pattern.match(wktcrs_string)
+        unit = None
+        if match:
+            if match.group('utype') == AngleUnit.ustring:
+                unit = AngleUnit(name=match.group('ustr'), scaling=match.group('sfactor'))
+            elif match.group('utype') == LengthUnit.ustring:
+                unit = LengthUnit(name=match.group('ustr'), scaling=match.group('sfactor'))
+        return unit
+
+
+class AngleUnit(BaseUnit):
     """The definition of an angular unit of measure, with a scaling factor to convert to SI units: radians."""
-    def __str__(self):
-        return 'ANGLEUNIT["{n}",{s}]'.format(n=self.name, s=self.scaling)
-    def wktcrs(self, ind=0):
-        pattern = '{ind}ANGLEUNIT["{n}",{s}]'
-        result = pattern.format(ind=ind*'  ', n=self.name, s=self.scaling)
-        return result
+    ustring = 'ANGLEUNIT'
 
 
-class LengthUnit(Unit):
+class LengthUnit(BaseUnit):
     """The definition of an linear unit of measure, with a scaling factor to convert to SI units: metres."""
-    def __str__(self):
-        return 'LENGTHUNIT["{n}",{s}]'.format(n=self.name, s=self.scaling)
-    def wktcrs(self, ind=0):
-        pattern = '{ind}LENGTHUNIT["{n}",{s}]'
-        result = pattern.format(ind=ind*'  ', n=self.name, s=self.scaling)
-        return result
-
+    ustring = 'LENGTHUNIT'
 
 
 class Axis(object):
@@ -67,14 +78,14 @@ class Axis(object):
             * axis_unit - a :class:`terra.Unit`.
 
         """
-        self.name = name
+        self.name = name.strip()
         self.abbreviation = abbreviation
         self.direction = direction
         self.unit = unit
 
     def nameabbv(self):
         if self.name and self.abbreviation:
-            result = '{} {}'.format(self.name, self.abbreviation)
+            result = '{} ({})'.format(self.name, self.abbreviation)
         elif self.name:
             result = self.name
         elif self.abbreviation:
@@ -88,24 +99,31 @@ class Axis(object):
                                 unit=str(self.unit))
         return result
 
+    def __repr__(self):
+        return self.__str__()
+
     def wktcrs(self, ind=0):
         pattern = '{ind}AXIS["{nameabbv}",{direction},{unit}]'
         result = pattern.format(ind=ind*'  ', nameabbv=self.nameabbv(), direction=self.direction,
-                                unit=str(self.unit))
+                                unit=self.unit.wktcrs())
         return result
 
-    wkt_pattern = re.compile('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,'
-                             '(?P<dir>\w+)\s*,\s*(?P<unit>\w*UNIT\[.+\])\s*')
-    name_abbv_pattern = re.compile('"([\s\w]*)(\(?\w*\)?)"')
+    _wkt_pattern = ('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,(?P<dir>\w+)\s*,\s*(?P<unit>{unit}\[.+\])\s*\]\s*')
+    wkt_patterns = [re.compile(_wkt_pattern.format(unit=LengthUnit.ustring)),
+                    re.compile(_wkt_pattern.format(unit=AngleUnit.ustring))]
+
+    name_abbv_pattern = re.compile('"([\s\w]*)\(?(\w*)\)?"')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string)
+        matches = [wkt_pattern.match(wktcrs_string) for wkt_pattern in cls.wkt_patterns]
         ax = None
-        if match:
-            na_match = cls.name_abbv_pattern.match(match.group('nameabbv'))
-            name = na_match.groups()[0]
-            abbv = na_match.groups()[1]
-            ax = cls(name=name, abbreviation=abbv, direction=match.group('dir'), unit=None)
+        for match in matches:
+            if match:
+                na_match = cls.name_abbv_pattern.match(match.group('nameabbv'))
+                name = na_match.groups()[0]
+                abbv = na_match.groups()[1]
+                unit = BaseUnit.parse_wktcrs(match.group('unit'), strict=strict)
+                ax = cls(name=name, abbreviation=abbv, direction=match.group('dir'), unit=unit)
         return ax
  
 
@@ -131,6 +149,12 @@ class CSystem(object):
         if axes is None:
             axes = []
         self.axes = axes
+
+    def __str__(self):
+        return '{} {}, ({}) {}'.format(self.identifier, self.cstype, self.dimension, self.axes)
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def cstype(self):
@@ -192,8 +216,8 @@ class Ellipsoid(cartopy.crs.Globe):
         Kwargs:
 
             * name - String.
-            * semimajor_axis - String or Int, a string will be preserved.
-            * inverse_flattening - String or Int, a string will be preserved.
+            * semimajor_axis - String or Float, a string will be preserved.
+            * inverse_flattening - String or Float, a string will be preserved.
             * lunit - :class:`Unit` instance.
 
         """ 
@@ -201,6 +225,12 @@ class Ellipsoid(cartopy.crs.Globe):
         self.semimajor_axis = semimajor_axis
         self.inverse_flattening = inverse_flattening
         self.lunit = lunit
+
+    def __str__(self):
+        return '{}, {}, {}, {}'.format(self.name, self.semimajor_axis, self.inverse_flattening, self.lunit)
+
+    def __repr__(self):
+        return self.__str__()
 
     @property
     def semimajor_axis(self):
@@ -250,17 +280,16 @@ class Ellipsoid(cartopy.crs.Globe):
                                 ifl=self.inverse_flattening_string, unit=self.lunit.wktcrs(ind+1))
         return result
 
-    wkt_pattern = re.compile('ELLIPSOID\[(?P<name>"[a-zA-Z0-9 ]+")\s*,\s*'
-                             '(?P<smax>[0-9\.]+),(?P<invf>[0-9\.]+)\s*,\s*'
-                             '(?P<lunit>LENGTHUNIT\[.+\])'
-                             '\]')
+    wkt_pattern = re.compile('\s*ELLIPSOID\["(?P<name>[a-zA-Z0-9\s]+)"\s*,\s*(?P<smax>[0-9\.]+)\s*,'
+                             '\s*(?P<invf>[0-9\.]+)\s*,\s*(?P<lunit>LENGTHUNIT\[.+\])\]\s*')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
         match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
         ellipsoid = None
         if match:
-            ellipsoid = Ellipsoid(name=name, semimajor_axis=smax,
-                                  inverse_flattening=invf, lunit=lunit)
+            lunit = BaseUnit.parse_wktcrs(match.group('lunit'))
+            ellipsoid = Ellipsoid(name=match.group('name'), semimajor_axis=match.group('smax'),
+                                  inverse_flattening=match.group('invf'), lunit=lunit)
         return ellipsoid
 
 
@@ -286,7 +315,7 @@ class GeodeticDatum(cartopy.crs.Geodetic):
 
 
     def wktcrs(self, ind=0):
-        pattern = ('{ind}DATUM[{name},\n'
+        pattern = ('{ind}DATUM["{name}",\n'
                    '{ind}  {ellp}],\n')
         ellp = None
         if self.ellipsoid is not None:
@@ -294,7 +323,7 @@ class GeodeticDatum(cartopy.crs.Geodetic):
         result = pattern.format(ind=ind*'  ', name=self.name, ellp=ellp)
         return result
 
-    wkt_pattern = re.compile('DATUM\[(?P<name>"[a-zA-Z0-9 ]+")'
+    wkt_pattern = re.compile('DATUM\["(?P<name>[a-zA-Z0-9 ]+)",'
                              '(?P<ellps>.+)\]')
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
@@ -391,7 +420,7 @@ class GeodeticCRS(CRS):
                         ('ellipsoidal', set((2, 3))),
                         ('spherical', set((3,)))))
     wkt_pattern = re.compile('^\s*([a-zA-Z0-9 ]+)\['
-                             '("[a-zA-Z0-9 ]+"),\s*'
+                             '"([a-zA-Z0-9 ]+)",\s*'
                              '(DATUM\[.+\]),\s*'
                              '(CS\[.+\])\]')
                              
@@ -414,7 +443,7 @@ class GeodeticCRS(CRS):
                   '       AXIS["(lat)",north,ANGLEUNIT["degree",0.0174532925199433]],\n'
                   '       AXIS["(lon)",east,ANGLEUNIT["degree",0.0174532925199433]],\n'
                   '       AXIS["ellipsoidal height (h)",up,LENGTHUNIT["metre",1.0]]]\n')
-        pattern = ('{ind}{crs_kw}[{name},\n'
+        pattern = ('{ind}{crs_kw}["{name}",\n'
                    '{ind}{datum}'
                    '{ind}{cs}]\n')
         result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
