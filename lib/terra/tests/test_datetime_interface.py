@@ -1,13 +1,9 @@
 
 import unittest
 
-import datetime as datetime
+import datetime
 import terra.datetime
 
-
-class Testdate(unittest.TestCase):
-    def test(self):
-        self.assertTrue(True)
 
 class Testtime(unittest.TestCase):
     def test_string(self):

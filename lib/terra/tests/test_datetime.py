@@ -4,10 +4,6 @@ import unittest
 import terra.datetime as datetime
 
 
-class Testdate(unittest.TestCase):
-    def test(self):
-        self.assertTrue(True)
-
 class Testtime(unittest.TestCase):
     def test_string(self):
         atime = datetime.time(hour=11, minute=3, second=5)
@@ -19,7 +15,7 @@ class Testtime(unittest.TestCase):
 
 class Testdate(unittest.TestCase):
     def test_string(self):
-        adate = datetime.date(2001,8, 7)
+        adate = datetime.date(2001, 8, 7)
         self.assertEqual(str(adate), '2001-08-07')
 
 if __name__ == '__main__':

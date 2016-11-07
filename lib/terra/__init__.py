@@ -5,8 +5,10 @@ import cartopy
 
 __version__ = '0.2'
 
+
 class BaseUnit(object):
-    """The definition of a base unit of measure, with a scaling factor to convert to SI units."""
+    """The definition of a base unit of measure, with a scaling factor to
+    convert to SI units."""
     ustring = 'UNIT'
     def __init__(self, name, scaling):
         """
@@ -20,14 +22,16 @@ class BaseUnit(object):
         self.scaling = scaling
 
     def __str__(self):
-        return '{u}["{n}",{s}]'.format(u=self.ustring, n=self.name, s=self.scaling)
+        return '{u}["{n}",{s}]'.format(u=self.ustring, n=self.name,
+                                       s=self.scaling)
 
     def __repr__(self):
         return self.__str__()
 
     def wktcrs(self, ind=0):
         pattern = '{ind}{u}["{n}",{s}]'
-        result = pattern.format(ind=ind*'  ', u=self.ustring, n=self.name, s=self.scaling)
+        result = pattern.format(ind=ind*'  ', u=self.ustring, n=self.name,
+                                s=self.scaling)
         return result
 
     @property
