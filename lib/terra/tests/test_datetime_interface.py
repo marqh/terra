@@ -18,9 +18,33 @@ class Testtime(unittest.TestCase):
         
 class Testdate(unittest.TestCase):
     def test_string(self):
-        adate = datetime.date(2001,8, 7)
-        tdate = terra.datetime.date(2001,8, 7)
+        adate = datetime.date(2001, 8, 7)
+        tdate = terra.datetime.date(2001, 8, 7)
         self.assertEqual(str(adate), str(tdate))
+
+class Testtimedelta(unittest.TestCase):
+    def test_days(self):
+        adate = datetime.date(2001, 8, 7)
+        bdate = datetime.date(2001, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.date(2001, 8, 7)
+        tbdate = terra.datetime.date(2001, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 31
+        msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
+        self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
+
+    def test_days_ten_years(self):
+        adate = datetime.date(2001, 8, 7)
+        bdate = datetime.date(2011, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.date(2001, 8, 7)
+        tbdate = terra.datetime.date(2011, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 3683
+        msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
+        self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
+
 
 if __name__ == '__main__':
     unittest.main()

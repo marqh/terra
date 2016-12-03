@@ -13,7 +13,7 @@ Different Calendars are supported, but numerical conversions between calendars
  knowledge and logic is required.
 
 """
-
+import terra.calendars
 
 class date(object):
     """
@@ -22,10 +22,11 @@ class date(object):
     Objects of this type are not immutable.
 
     """
-    def __init__(self, year, month, day):
+    def __init__(self, year, month, day, calendar=None):
         self.year = year
         self.month = month
         self.day = day
+        self.calendar = calendar
 
     def __str__(self):
         return '{0:0>4}-{1:0>2}-{2:0>2}'.format(self.year, self.month,
@@ -35,6 +36,9 @@ class date(object):
         return 'terra.datetime.date({}, {}, {})'.format(self.year,
                                                         self.month,
                                                         self.day)
+
+    def __sub__(self, other):
+        return timedelta(self, other)
 
 
 class time(object):
@@ -94,11 +98,13 @@ class datetime(object):
         self.date = date(year, month, day)
         self.time = time(hour, minute, second, microsecond, tzinfo)
 
+    def __sub__(self, other):
+        return timedelta(self, other)
+
 
 class timedelta(object):
     """
-    A duration expressing the difference between two date, datetime instances
-    to microsecond resolution.
+    A duration expressing the difference between two date or datetime instances.
 
     For date calculations, the calendars of the two datetime instances must
     match.
@@ -106,7 +112,102 @@ class timedelta(object):
     Objects of this type are not immutable.
 
     """
-    pass
+    def __init__(self, start, end):
+        if start.calendar != end.calendar:
+            raise ValueError('timedeltas are not well defined across differing calendars '
+                             'for terra.datetime instances.')
+        if start.calendar is None:
+            self.calendar = terra.calendars.gregorian_no_leap()
+        else:
+            self.calendar = start.calendar
+        self.start = start
+        self.end = end
+
+    # @property
+    # def resolution(self):
+        # return another time delta
+
+    @property
+    def years(self):
+        """Return the length of time, floored to the nearest year."""
+        if self.start.year is None or self.end.year is None:
+            result = None
+        else:
+            result = self.end.year - self.start.year
+            if self.end.month < self.start.month:
+                if not self.end.day < self.start.day:
+                    result -= 1
+        return result
+        
+    # @property
+    # def months(self):
+    #     # requires that the calendars are not None and the number of months per year
+    #     if self.start.year is None or self.end.year is None:
+    #         result = None
+    #     else:
+    #         result = self.end.year - self.start.year
+    #     return result
+        
+    @property
+    def days(self):
+        if self.start.day is None or self.end.day is None:
+            result = None
+        else:
+            #days = self.end.day - self.start.day
+            #daysinyears = self.years * self.calendar.days_in_year
+            # accumulate
+            days = 0
+            #self.start.
+            # for (year, month, day) in self.calendar.accumulate(self.start, self.end):
+            # for month in self.calendar.month_day_map[self.start.month:]:
+                
+            # for year in [self.start.year + y + 1 for y in range(self.end.year - self.start.year)]:
+                
+            result = days
+        return result
+        
+        
+        
+    @property
+    def hours(self):
+        if self.start.hour is None or self.end.hour is None:
+            result = None
+        else:
+            hours = self.end.hour - self.start.hour
+            result = self.days() * 24 + hours
+        return result
+        
+    @property
+    def minutes(self):
+        if self.start.minute is None or self.end.minute is None:
+            result = None
+        else:
+            minutes = self.end.minute - self.start.minute
+            result = self.hours() * 60 + minutes
+        return result
+
+    @property
+    def seconds(self):
+        if self.start.second is None or self.end.second is None:
+            result = None
+        else:
+            seconds = self.end.second - self.start.second
+            result = self.minutes() * 60 + seconds
+        if False:
+            # handle leap seconds if they exist within the period
+            leapseconds = 0
+            result += 1 * leapseconds
+
+        return result
+
+    @property
+    def microseconds(self):
+        if self.start.microsecond is None or self.end.microsecond is None:
+            result = None
+        else:
+            microseconds = self.end.microsecond - self.start.microsecond
+            result = self.start.seconds() * 1e6 + microseconds
+        return result
 
 
 class tzinfo(object):
@@ -121,7 +222,7 @@ class tzinfo(object):
     """
     pass
 
-
+    
 class Duration(object):
     """
     A datetime duration, represented by whole unit like quantities.
@@ -131,12 +232,17 @@ class Duration(object):
 
     """
     def __init__(self, year=None, month=None, day=None, hour=None,
-                 calendar=None):
+                 minute=None, second=None, calendar=None):
         self.year = year
         self.month = month
         self.day = day
         self.hour = hour
+        self.minute = minute
+        self.second = second
         self.calendar = calendar
+
+    def __sub__(self, other):
+        return timedelta(self, other)
 
 
 class SegmentedDuration(object):
@@ -246,4 +352,3 @@ class Calendar(object):
             weekday_names = []
         self.weekday_names = weekday_names
         self.weekday_start_date = weekday_start_date
-

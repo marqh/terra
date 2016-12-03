@@ -18,5 +18,9 @@ class Testdate(unittest.TestCase):
         adate = datetime.date(2001, 8, 7)
         self.assertEqual(str(adate), '2001-08-07')
 
+class Testtimedelta(unittest.TestCase):
+    def test_foo(self):
+        pass
+
 if __name__ == '__main__':
     unittest.main()
