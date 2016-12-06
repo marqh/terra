@@ -22,7 +22,7 @@ class Testdate(unittest.TestCase):
         tdate = terra.datetime.date(2001, 8, 7)
         self.assertEqual(str(adate), str(tdate))
 
-class Testtimedelta(unittest.TestCase):
+class TestDatePlusMinus(unittest.TestCase):
     def test_days(self):
         adate = datetime.date(2001, 8, 7)
         bdate = datetime.date(2001, 9, 7)
@@ -44,6 +44,49 @@ class Testtimedelta(unittest.TestCase):
         exptd = 3683
         msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
         self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
+
+    def test_days_ten_years_days(self):
+        adate = datetime.date(2001, 8, 7)
+        exp_bdate = datetime.date(2011, 9, 7)
+        bdate = adate + datetime.timedelta(days=3683)
+        tadate = terra.datetime.date(2001, 8, 7)
+        texpbdate = terra.datetime.date(2011, 9, 7)
+        tbdate = tadate + terra.datetime.timedelta(days=3683)
+        self.assertEqual(str(bdate), str(tbdate))
+
+    def test_days_two_years(self):
+        adate = datetime.date(2001, 8, 7)
+        bdate = datetime.date(2003, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.date(2001, 8, 7)
+        tbdate = terra.datetime.date(2003, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 761
+        msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
+        self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
+
+class TestDatetime(unittest.TestCase):
+    def test_total_seconds(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = datetime.datetime(2001, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.datetime(2001, 8, 7)
+        tbdate = terra.datetime.datetime(2001, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 31
+        msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
+        self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
+
+    def test_total_seconds_two_years(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = datetime.datetime(2003, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.datetime(2001, 8, 7)
+        tbdate = terra.datetime.datetime(2003, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 761
+        msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
+        self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
 
 if __name__ == '__main__':
