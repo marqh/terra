@@ -37,15 +37,18 @@ class TestWGS84(unittest.TestCase):
         # print(geodcrs.wktcrs(1))
         # print(self.wktoutput)
         # print(geodcrs.wktcrs_strict())
-        self.assertEqual(geodcrs.wktcrs(1), self.wktoutput)
+        self.assertEqual(geodcrs.wktcrs(1), self.wktoutput,
+                         msg='\n{}\n != \n{}\n'.format(geodcrs.wktcrs(1), self.wktoutput))
 
     def test_parse_wkt(self):
         wgs84 = terra.parse_wktcrs(self.wktoutput, strict=True)
-        self.assertEqual(wgs84.wktcrs(1), self.wktoutput)
+        self.assertEqual(wgs84.wktcrs(1), self.wktoutput,
+                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1), self.wktoutput))
 
     def test_parse_wkt_strict(self):
         wgs84 = terra.parse_wktcrs(self.wktinput, strict=True)
-        self.assertEqual(wgs84.wktcrs_strict(), self.wktinput)
+        self.assertEqual(wgs84.wktcrs_strict(), self.wktinput,
+                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1), self.wktoutput))
         
      
 if __name__ == '__main__':
