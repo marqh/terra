@@ -1,6 +1,7 @@
 
 import unittest
 
+import numpy as np
 import datetime
 import terra.datetime
 
@@ -84,7 +85,7 @@ class TestDatetime(unittest.TestCase):
         tadate = terra.datetime.datetime(2001, 8, 7)
         tbdate = terra.datetime.datetime(2001, 9, 7)
         tdelta = tbdate - tadate
-        exptd = 2678400.0
+        exptd = 2678400
         msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
         self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
@@ -95,10 +96,18 @@ class TestDatetime(unittest.TestCase):
         tadate = terra.datetime.datetime(2001, 8, 7)
         tbdate = terra.datetime.datetime(2003, 9, 7)
         tdelta = tbdate - tadate
-        exptd = 65750400.0
+        exptd = 65750400
         msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
         self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
+class TestIntegerDatetimeOffset(unittest.TestCase):
+    def test_days_offset(self):
+        adate = datetime.date(2001, 8, 7)
+        bdate = adate + datetime.timedelta(days=3683)
+        tdate = terra.datetime.date(2001, 8, 7)
+        edate = terra.datetime.EpochDateTimes(np.array((3683,)), 'day', epoch=tdate)
+        self.assertEqual(str(bdate), str(edate))
+        
 
 if __name__ == '__main__':
     unittest.main()

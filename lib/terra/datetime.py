@@ -15,6 +15,7 @@ Different Calendars are supported, but numerical conversions between calendars
 """
 import copy
 
+import numpy as np
 
 class date(object):
     """
@@ -409,7 +410,7 @@ class timedelta(object):
 temporal_units = ['year', 'month', 'day',
                   'hour', 'minute', 'second', 'microsecond']
 
-class IntegerDatetimeOffset(object):
+class IntegerDatetimeOffsets(object):
     """
     A datetime offset array, an integer number of whole temporal unit
     quantities.
@@ -423,14 +424,14 @@ class IntegerDatetimeOffset(object):
                              '.'.format(unit))
         self.unit = unit
 
-class EpochDateTime(object):
+class EpochDateTimes(object):
     """
     An collection of instants within a calendar,
     offsets from a defined :class:`datetime` epoch with respect to 
     its calendar.
 
     """
-    def __init__(self, offsets, epoch):
+    def __init__(self, offsets, unit, epoch):
         """
         Create an EpochDateTime instance.
 
@@ -441,13 +442,23 @@ class EpochDateTime(object):
             * datetime - a :class:`terra.datetime.datetime` instance
 
         """
-        self.offsets = offsets
+        self.offsets = IntegerDatetimeOffsets(offsets, unit)
         self.epoch = epoch
 
     @property
     def calendar(self):
         return self.epoch.calendar
 
+    def __str__(self):
+        if len(self.offsets.offsets) == 1:
+            result = str(self.epoch + timedelta(days=self.offsets.offsets[0]))
+        else:
+            result = str(np.array([str(self.epoch + timedelta(days=v))
+                                   for v in self.offsets.offsets]))
+        return result
+
+    def __repr__(self):
+        return self.__str__()
 
 class Calendar(object):
     """
