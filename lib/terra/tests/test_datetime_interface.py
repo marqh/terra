@@ -34,6 +34,17 @@ class TestDatePlusMinus(unittest.TestCase):
         msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
         self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
 
+    def test_days_months(self):
+        adate = datetime.date(2001, 8, 7)
+        bdate = datetime.date(2001, 11, 17)
+        delta = bdate - adate
+        tadate = terra.datetime.date(2001, 8, 7)
+        tbdate = terra.datetime.date(2001, 11, 17)
+        tdelta = tbdate - tadate
+        exptd = 102
+        msg = '{} != {} != {}'.format(tdelta.days, delta.days, exptd)
+        self.assertTrue(tdelta.days == delta.days == exptd, msg=msg)
+
     def test_days_ten_years(self):
         adate = datetime.date(2001, 8, 7)
         bdate = datetime.date(2011, 9, 7)
@@ -73,7 +84,7 @@ class TestDatetime(unittest.TestCase):
         tadate = terra.datetime.datetime(2001, 8, 7)
         tbdate = terra.datetime.datetime(2001, 9, 7)
         tdelta = tbdate - tadate
-        exptd = 31
+        exptd = 2678400.0
         msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
         self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
@@ -84,7 +95,7 @@ class TestDatetime(unittest.TestCase):
         tadate = terra.datetime.datetime(2001, 8, 7)
         tbdate = terra.datetime.datetime(2003, 9, 7)
         tdelta = tbdate - tadate
-        exptd = 761
+        exptd = 65750400.0
         msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
         self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
