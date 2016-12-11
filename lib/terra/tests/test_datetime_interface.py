@@ -100,14 +100,57 @@ class TestDatetime(unittest.TestCase):
         msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
         self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
 
+    def test_total_seconds_ten_years(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = datetime.datetime(2011, 9, 7)
+        delta = bdate - adate
+        tadate = terra.datetime.datetime(2001, 8, 7)
+        tbdate = terra.datetime.datetime(2011, 9, 7)
+        tdelta = tbdate - tadate
+        exptd = 318211200
+        msg = '{} != {} != {}'.format(tdelta.total_seconds(), delta.total_seconds(), exptd)
+        self.assertTrue(tdelta.total_seconds() == delta.total_seconds() == exptd, msg=msg)
+
+
 class TestIntegerDatetimeOffset(unittest.TestCase):
     def test_days_offset(self):
-        adate = datetime.date(2001, 8, 7)
+        adate = datetime.datetime(2001, 8, 7)
         bdate = adate + datetime.timedelta(days=3683)
-        tdate = terra.datetime.date(2001, 8, 7)
+        tdate = terra.datetime.datetime(2001, 8, 7)
         edate = terra.datetime.EpochDateTimes(np.array((3683,)), 'day', epoch=tdate)
-        self.assertEqual(str(bdate), str(edate))
-        
+        self.assertEqual(bdate.isoformat(), str(edate))
+
+    def test_days_offset_ten_years(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = adate + datetime.timedelta(seconds=318211200)
+        tdate = terra.datetime.datetime(2001, 8, 7)
+        edate = terra.datetime.EpochDateTimes(np.array((318211200,)), 'second', epoch=tdate)
+        self.assertEqual(bdate.isoformat(), str(edate))
+
+class TestIntegerDatetimeOffsetUTC(unittest.TestCase):
+    def test_days_offset(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = adate + datetime.timedelta(days=3683)
+        tdate = terra.datetime.datetime(2001, 8, 7, calendar=terra.datetime.ISOGregorian())
+        edate = terra.datetime.EpochDateTimes(np.array((3683,)), 'day', epoch=tdate)
+        self.assertEqual(bdate.isoformat(), str(edate))
+
+    def test_days_offset_ten_years(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = adate + datetime.timedelta(seconds=318211200)
+        bdate = bdate + datetime.timedelta(seconds=-2)
+        tdate = terra.datetime.datetime(2001, 8, 7, calendar=terra.datetime.ISOGregorian())
+        edate = terra.datetime.EpochDateTimes(np.array((318211200,)), 'second', epoch=tdate)
+        self.assertEqual(bdate.isoformat(), str(edate))
+
+    def test_days_offset_ten_years_hours(self):
+        adate = datetime.datetime(2001, 8, 7)
+        bdate = adate + datetime.timedelta(seconds=318211200 + 33333)
+        bdate = bdate + datetime.timedelta(seconds=-2)
+        tdate = terra.datetime.datetime(2001, 8, 7, calendar=terra.datetime.ISOGregorian())
+        edate = terra.datetime.EpochDateTimes(np.array((318211200 + 33333,)), 'second', epoch=tdate)
+        self.assertEqual(bdate.isoformat(), str(edate))
+
 
 if __name__ == '__main__':
     unittest.main()
