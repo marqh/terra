@@ -17,8 +17,7 @@ import copy
 import numpy as np
 import requests
 
-import terra
-
+import terra.units
 
 class date(object):
     """
@@ -189,6 +188,10 @@ class date(object):
         newyear = self.year
         newmonth = self.month
         newday = self.day
+        try:
+            a = range(other.days)
+        except Exception:
+            import pdb; pdb.set_trace()
         for day in range(other.days):
             newday = newday + 1
             days_in_month = calendar.month_day_map[newmonth - 1]
@@ -255,8 +258,8 @@ class time(object):
             raise ValueError('Adding days to a time is not supported.')
         if other.seconds is None:
             raise ValueError('Adding None seconds to a time is not supported.')
-        hours = self.hour + int(other.seconds) / 3600
-        minutes = (int(other.seconds) % 3600) / 60
+        hours = self.hour + int(other.seconds) // 3600
+        minutes = (int(other.seconds) % 3600) // 60
         seconds = (int(other.seconds) % 3600) % 60
         newtime = time(hours, minutes, seconds)
         return newtime
@@ -426,7 +429,7 @@ class datetime(object):
                 seconds = other.seconds
             else:
                 seconds = other.seconds + other.microseconds
-            naive_days = int(seconds) / (24 * 60 * 60)
+            naive_days = int(seconds) // (24 * 60 * 60)
             newdate = self.date + timedelta(days=naive_days)
             remainder = seconds % (24 * 60 * 60)
             for day, month, year in calendar.leapsecond_datetimes:
@@ -682,8 +685,8 @@ class IntegerDatetimeOffsets(object):
     def __init__(self, offsets, unit):
         # Check this is a numpy array of integers.
         self.offsets = offsets
-        if not isinstance(unit, terra.TemporalUnit):
-            unit = terra.TemporalUnit(unit)
+        if not isinstance(unit, terra.units.TemporalUnit):
+            unit = terra.units.TemporalUnit(unit)
         self.unit = unit
 
 class EpochDateTimes(object):
@@ -695,7 +698,7 @@ class EpochDateTimes(object):
     """
     def __init__(self, offsets, unit, epoch):
         """
-        Create an EpochDateTime instance.
+        Create an EpochDateTimes instance.
 
         Args:
 
@@ -853,10 +856,14 @@ class ISOGregorian(GregorianNoLeapSecond):
                   '3550089600	35	# 1 Jul 2012\n'
                   '3644697600	36	# 1 Jul 2015\n'
                   '3692217600	37	# 1 Jan 2017\n')
-        res = requests.get(ietf_uri)
-        if res.status_code != 200:
-            instr = static
-        instr = res.text.split('\n')
+        try:
+            res = requests.get(ietf_uri)
+            if res.status_code != 200:
+                instr = static
+            instr = res.text.split('\n')
+        except Exception:#requests.packages.urllib3.exceptions.MaxRetryError:
+            instr = static.split('\n')
+
         leap_years = []
         for line in instr:
             if line and not line.startswith('#'):

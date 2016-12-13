@@ -1,6 +1,8 @@
+import unittest
 
 import terra
-import unittest
+import terra.units
+
 class TestWGS84(unittest.TestCase):
     def setUp(self):
         self.wktoutput = ('  GEODCRS["WGS 84",\n'
@@ -24,8 +26,8 @@ class TestWGS84(unittest.TestCase):
         self.assertTrue(True)
 
     def test_WKTCRS_print(self):
-        du = terra.AngleUnit("degree", '0.0174532925199433')
-        mu = terra.LengthUnit("metre", '1.0')
+        du = terra.units.AngleUnit("degree", '0.0174532925199433')
+        mu = terra.units.LengthUnit("metre", '1.0')
         axes = [terra.Axis(abbreviation='lat', direction='north', unit=du),
                 terra.Axis(abbreviation='lon', direction='east', unit=du),
                 terra.Axis(name='ellipsoidal height', abbreviation='h', direction='up', unit=mu),]
