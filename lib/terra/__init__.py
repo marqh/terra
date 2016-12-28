@@ -456,9 +456,9 @@ class TemporalCRS(CRS):
                              '(TDATUM\[.+\]),\s*'
                              '(CS\[.+\])\]')
 
-       # TIMECRS[“GPS Time”,
-       #            TDATUM[“Time origin”,TIMEORIGIN[1980-01-01T00:00:00.0Z]],
-       #            CS[temporal,1],AXIS[“time”,future],TIMEUNIT[“day”,86400.0]]
+       # TIMECRS["GPS Time",
+       #            TDATUM["Time origin",TIMEORIGIN[1980-01-01T00:00:00.0Z]],
+       #            CS[temporal,1],AXIS["time",future],TIMEUNIT["day",86400.0]]
 
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
@@ -509,7 +509,7 @@ class TemporalDatum(object):
                                 timo=self.timeorigin)
         return result
 
-       #            TDATUM[“Time origin”,TIMEORIGIN[1980-01-01T00:00:00.0Z]],
+       #            TDATUM["Time origin",TIMEORIGIN[1980-01-01T00:00:00.0Z]],
 
 
     wkt_pattern = re.compile('TDATUM\["(?P<name>[a-zA-Z0-9 ]+)",'

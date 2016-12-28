@@ -86,9 +86,12 @@ class TemporalUnit(BaseUnit):
     ustring = 'TEMPORALUNIT'
     def __init__(self, unit):
         scaling = None
-        allowed_units = ['year', 'month', 'day', 'hour', 'minute', 'second']
+        allowed_units = ['years', 'months', 'days', 'hours', 'minutes', 'seconds']
         if unit not in allowed_units:
-            raise ValueError('{} not one of the allowed units'.format(unit))
+            if unit + 's' in allowed_units:
+                unit = unit + 's'
+            else:
+                raise ValueError('{} not one of the allowed units'.format(unit))
         super(TemporalUnit, self).__init__(unit, scaling)
         
 

@@ -15,9 +15,31 @@ Different Calendars are supported, but numerical conversions between calendars
 """
 import copy
 import numpy as np
+import re
 import requests
 
 import terra.units
+
+
+dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})(T)([0-9]{2}):([0-9]{2}):([0-9]{2})'),
+                     re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})( )([0-9]{2}):([0-9]{2}):([0-9]{2})')]
+
+def parse_datetime(instring, calendar):
+    """
+    Returns a `terra.datetime.datetime` from a given string and terra Calendar.
+
+    """
+    if not isinstance(calendar, Calendar):
+        raise TypeError('calendar must be a terra.datetime.Calendar.')
+    result = None
+    for pattern in dtstring_patterns:
+        match = pattern.match(instring)
+        if match:
+            result = datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)),
+                              int(match.group(5)), int(match.group(6)), int(match.group(7)),
+                              calendar=calendar, tsep=match.group(4))
+    return result
+    
 
 class date(object):
     """
@@ -191,7 +213,7 @@ class date(object):
         try:
             a = range(other.days)
         except Exception:
-            import pdb; pdb.set_trace()
+            raise ValueError('ehh??')
         for day in range(other.days):
             newday = newday + 1
             days_in_month = calendar.month_day_map[newmonth - 1]
@@ -276,14 +298,15 @@ class datetime(object):
 
     """
     def __init__(self, year, month, day, hour=0, minute=0, second=0,
-                 microsecond=0, tzinfo=None, calendar=None):
-
+                 microsecond=0, tzinfo=None, calendar=None, tsep='T'):
+        
         # Design question: validate inputs?
         self.date = date(year, month, day, calendar)
         self.time = time(hour, minute, second, microsecond, tzinfo)
+        self.tsep = tsep
 
     def __str__(self):
-        return '{}T{}'.format(str(self.date), str(self.time))
+        return '{}{}{}'.format(str(self.date), self.tsep, str(self.time))
 
     def __repr__(self):
         return str(self)
@@ -447,9 +470,33 @@ class datetime(object):
         
         
         result = datetime(newdate.year, newdate.month, newdate.day, newtime.hour,
-                          newtime.minute, newtime.second, newtime.microsecond, newtime.tzinfo)
+                          newtime.minute, newtime.second, newtime.microsecond, newtime.tzinfo,
+                          calendar=self.calendar, tsep=self.tsep)
         return result
 
+
+def convert_datetimes(datetimes):
+    """
+    Return a datetime or array of datetimes which may have been python `datetime.datetime` instances.
+    """
+    def _datetime_conversion(adt):
+        if isinstance(adt, datetime):
+            result = datetime
+        elif (hasattr(adt, 'year') and hasattr(adt, 'month') and hasattr(adt, 'day') and
+              hasattr(adt, 'hour') and hasattr(adt, 'minute') and hasattr(adt, 'second') and
+              hasattr(adt, 'microsecond') and hasattr(adt, 'tzinfo')):
+            result = datetime(adt.year, adt.month, adt.day, adt.hour,
+                              adt.minute, adt.second, adt.microsecond, adt.tzinfo,
+                              calendar=GregorianNoLeapSecond())
+        else:
+            raise TypeError('cannot return datetime from {}'.format(str(datetime)))
+        return result
+    if isinstance(datetimes, np.ndarray):
+        pass
+    else:
+        result = _datetime_conversion(datetimes)
+    return result
+    
 
 class Duration(object):
     """
@@ -684,6 +731,8 @@ class IntegerDatetimeOffsets(object):
     """
     def __init__(self, offsets, unit):
         # Check this is a numpy array of integers.
+        if isinstance(offsets, int):
+            offsets = np.array((offsets,))
         self.offsets = offsets
         if not isinstance(unit, terra.units.TemporalUnit):
             unit = terra.units.TemporalUnit(unit)
@@ -715,20 +764,30 @@ class EpochDateTimes(object):
         return self.epoch.calendar
 
     def __str__(self):
-        if len(self.offsets.offsets) == 1:
-            if self.offsets.unit == 'day':
-                result = str(self.epoch + timedelta(days=self.offsets.offsets[0]))
-            elif self.offsets.unit == 'second':
-                result = str(self.epoch + timedelta(seconds=self.offsets.offsets[0]))
-        else:
-            if self.offsets.unit == 'day':
-                result = str(np.array([str(self.epoch + timedelta(days=v))
-                                       for v in self.offsets.offsets]))
-
-            elif self.offsets.unit == 'second':
-                result = str(np.array([str(self.epoch + timedelta(seconds=v))
-                                       for v in self.offsets.offsets]))
+        dts = self.datetimes()
+        result = str(dts)
+        if len(dts) == 1:
+            result = str(dts[0]) 
         return result
+
+    def datetimes(self):
+        """Return an array of terra.datetime.datetime objects."""
+        if self.offsets.unit == 'days':
+            result = np.array([self.epoch + timedelta(days=v)
+                                for v in self.offsets.offsets])
+
+        elif self.offsets.unit == 'seconds':
+            result = np.array([self.epoch + timedelta(seconds=v)
+                                   for v in self.offsets.offsets])
+
+        elif self.offsets.unit == 'hours' and not self.epoch.calendar.leapsecond_datetimes:
+            result = np.array([self.epoch + timedelta(seconds=v*60*60)
+                                   for v in self.offsets.offsets])
+
+        else:
+            raise ValueError("{} not in processable units: ['days', 'seconds', 'hours']".format(self.offsets.unit))
+        return result
+        
 
     def __repr__(self):
         return self.__str__()
@@ -794,6 +853,11 @@ class Calendar(object):
             result = False
         return result
 
+    def __eq__(self, other):
+        return isinstance(self, type(other))
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class GregorianNoLeapSecond(Calendar):
     def __init__(self):
