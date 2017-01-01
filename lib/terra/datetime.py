@@ -309,7 +309,7 @@ class datetime(object):
         return '{}{}{}'.format(str(self.date), self.tsep, str(self.time))
 
     def __repr__(self):
-        return str(self)
+        return 'terra.datetime({})'.format(str(self))
 
     def __lt__(self, other):
         if not isinstance(other, date):
@@ -562,34 +562,37 @@ class Duration(object):
             result = None
         else:
             # Accumulate to calculate
- 
             adate = copy.copy(self.start)
             days = 0
-            # Handle the first month, which may be partial.
-            for d in range(self.calendar.month_day_map[self.start.month - 1])[self.start.day:]:
-                adate, days = _add_day(adate, days)
-            if self.end.year == self.start.year:
-                if self.end.month - self.start.month > 1:
-                    for month_length in self.calendar.month_day_map[self.start.month:self.end.month - 1]:
-                        for d in range(month_length):
-                            adate, days = _add_day(adate, days)
+            if self.start.year == self.end.year and self.start.month == self.end.month:
+                for d in range(self.start.day, self.end.day):
+                    adate, days = _add_day(adate, days)
             else:
-                # handle up tho the end of the first year. 
-                for month_length in self.calendar.month_day_map[self.start.month:]:
-                    for d in range(month_length):
-                        adate, days = _add_day(adate, days)
-                # Handle all the middle (full) years.
-                for year in range(self.end.year - self.start.year -1):
-                    for month_length in self.calendar.month_day_map:
+                # Handle the first month, which may be partial.
+                for d in range(self.calendar.month_day_map[self.start.month - 1])[self.start.day:]:
+                    adate, days = _add_day(adate, days)
+                if self.end.year == self.start.year:
+                    if self.end.month - self.start.month > 1:
+                        for month_length in self.calendar.month_day_map[self.start.month:self.end.month - 1]:
+                            for d in range(month_length):
+                                adate, days = _add_day(adate, days)
+                else:
+                    # handle up tho the end of the first year. 
+                    for month_length in self.calendar.month_day_map[self.start.month:]:
                         for d in range(month_length):
                             adate, days = _add_day(adate, days)
-                # Handle the last year, which may be partial.
-                for month_length in self.calendar.month_day_map[:self.end.month - 1]:
-                    for d in range(month_length):
-                        adate, days = _add_day(adate, days)
-            # Handle the last month, which may be partial.
-            for d in range(self.calendar.month_day_map[self.end.month])[:self.end.day]:
-                adate, days = _add_day(adate, days)
+                    # Handle all the middle (full) years.
+                    for year in range(self.end.year - self.start.year -1):
+                        for month_length in self.calendar.month_day_map:
+                            for d in range(month_length):
+                                adate, days = _add_day(adate, days)
+                    # Handle the last year, which may be partial.
+                    for month_length in self.calendar.month_day_map[:self.end.month - 1]:
+                        for d in range(month_length):
+                            adate, days = _add_day(adate, days)
+                # Handle the last month, which may be partial.
+                for d in range(self.calendar.month_day_map[self.end.month])[:self.end.day]:
+                    adate, days = _add_day(adate, days)
             result = days
         return result
         
@@ -827,7 +830,7 @@ class Calendar(object):
             null_years = []
         self.null_years = null_years
 
-    def is_leap_year(year):
+    def is_leap_year(self, year):
         """Return True for leap years, False for non-leap years."""
         return False
 
@@ -858,6 +861,21 @@ class Calendar(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+class G360Day(Calendar):
+    def __init__(self):
+        url = None
+        month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December']
+        month_day_map = [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]
+
+        # leapsecond_datetimes = None
+        # weekday_names = None
+        # weekday_start_date = None
+        # null_years = None
+        super(G360Day, self).__init__(url, month_names=month_names,
+                                      month_day_map=month_day_map)
+
 
 class GregorianNoLeapSecond(Calendar):
     def __init__(self):
