@@ -20,7 +20,8 @@ import requests
 
 import terra.units
 
-
+## must be in context to know what 'CAL' means
+## '^([0-9]{4})-([0-9]{2})-([0-9]{2})(CAL)([0-9]{2}):([0-9]{2}):([0-9]{2})'
 dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})(T)([0-9]{2}):([0-9]{2}):([0-9]{2})'),
                      re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})( )([0-9]{2}):([0-9]{2}):([0-9]{2})')]
 
@@ -496,8 +497,9 @@ def convert_datetimes(datetimes):
     else:
         result = _datetime_conversion(datetimes)
     return result
-    
 
+
+## OWL:Time call this class something else: this is a CalendarDuration
 class Duration(object):
     """
     Represents a temporal period between two date or two datetime instances.
@@ -511,7 +513,7 @@ class Duration(object):
     """
     def __init__(self, end, start):
         if start.calendar != end.calendar:
-            raise ValueError('Duratons are not well defined across differing calendars '
+            raise ValueError('Durations are not well defined across differing calendars '
                              'for terra.datetime instances.')
         if start.calendar is None:
             self.calendar = GregorianNoLeapSecond()
@@ -655,7 +657,9 @@ class tzinfo(object):
     """
     pass
 
+
 class timedelta(object):
+    """this is a one of http://w3c.github.io/sdw/time/#time:Duration"""
     def __init__(self, days=None, seconds=None, microseconds=None):
         self.days = days
         self.seconds = seconds
@@ -746,6 +750,8 @@ class EpochDateTimes(object):
     An collection of instants within a calendar,
     offsets from a defined :class:`datetime` epoch with respect to 
     its calendar.
+
+    
 
     """
     def __init__(self, offsets, unit, epoch):
