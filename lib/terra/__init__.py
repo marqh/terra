@@ -5,6 +5,7 @@ import six
 import cartopy
 
 import terra.units
+from terra.units import BaseUnit
 import terra.datetime
 
 __version__ = '0.3'
@@ -13,8 +14,9 @@ __version__ = '0.3'
 class Axis(object):
     """An Axis, the definition of meaning for a set of coordinate values."""
 
-    axis = ('<axis keyword> <left delimiter>  <axis nameAbbrev> <wkt separator> '
-            '<axis direction> [ <wkt separator> <axis order> ] [ <wkt separator> <axis unit> ] '
+    axis = ('<axis keyword> <left delimiter>  <axis nameAbbrev> '
+            '<wkt separator> <axis direction> [ <wkt separator> <axis order> ]'
+            ' [ <wkt separator> <axis unit> ] '
             '[ { <wkt separator> <identifier> } ]...  <right delimiter>')
 
     def __init__(self, name='', abbreviation='', direction='', unit=None):
@@ -44,9 +46,9 @@ class Axis(object):
         return result
 
     def __str__(self):
-        # '       AXIS["(lat)",north,ANGLEUNIT["degree",0.0174532925199433]],\n'
         pattern = 'AXIS["{nameabbv}",{direction},{unit}]'
-        result = pattern.format(nameabbv=self.nameabbv(), direction=self.direction,
+        result = pattern.format(nameabbv=self.nameabbv(),
+                                direction=self.direction,
                                 unit=str(self.unit))
         return result
 
@@ -55,19 +57,26 @@ class Axis(object):
 
     def wktcrs(self, ind=0):
         pattern = '{ind}AXIS["{nameabbv}",{direction},{unit}]'
-        result = pattern.format(ind=ind*'  ', nameabbv=self.nameabbv(), direction=self.direction,
+        result = pattern.format(ind=ind*'  ', nameabbv=self.nameabbv(),
+                                direction=self.direction,
                                 unit=self.unit.wktcrs())
         return result
 
-    _wkt_pattern = ('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,(?P<dir>\w+)\s*,\s*(?P<unit>{unit}\[.+\])\s*\]\s*')
-    wkt_patterns = [re.compile(_wkt_pattern.format(unit=terra.units.LengthUnit.ustring)),
-                    re.compile(_wkt_pattern.format(unit=terra.units.AngleUnit.ustring)),
-                    re.compile('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,(?P<dir>\w+)\s*\]\s*')]
+    _wkt_pattern = ('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,(?P<dir>\w+)\s*,'
+                    '\s*(?P<unit>{unit}\[.+\])\s*\]\s*')
+    lu = terra.units.LengthUnit.ustring
+    au = terra.units.AngleUnit.ustring
+    wkt_patterns = [re.compile(_wkt_pattern.format(unit=lu)),
+                    re.compile(_wkt_pattern.format(unit=au)),
+                    re.compile('\s*AXIS\[(?P<nameabbv>"[\w\s\(\)]+")\s*,'
+                               '(?P<dir>\w+)\s*\]\s*')]
 
     name_abbv_pattern = re.compile('"([\s\w]*)\(?(\w*)\)?"')
+
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        matches = [wkt_pattern.match(wktcrs_string) for wkt_pattern in cls.wkt_patterns]
+        matches = [wkt_pattern.match(wktcrs_string) for
+                   wkt_pattern in cls.wkt_patterns]
         ax = None
         for match in matches:
             if match:
@@ -76,25 +85,35 @@ class Axis(object):
                 abbv = na_match.groups()[1]
                 # yuck
                 try:
-                    unit = terra.units.BaseUnit.parse_wktcrs(match.group('unit'), strict=strict)
+                    unit = BaseUnit.parse_wktcrs(match.group('unit'),
+                                                 strict=strict)
                 except IndexError:
-                    unit=None
-                ax = cls(name=name, abbreviation=abbv, direction=match.group('dir'), unit=unit)
+                    unit = None
+                ax = cls(name=name, abbreviation=abbv,
+                         direction=match.group('dir'), unit=unit)
         return ax
- 
+
 
 class CSystem(object):
-    CSTYPES = set(('affine', 'Cartesian', 'cylindrical', 'ellipsoidal', 'linear',
-                   'parametric', 'polar', 'spherical', 'temporal', 'vertical'))
-    """A Coordinate System: a set of basis vectors defining an ordered collection of Axes."""
-    def __init__(self, cstype='', dimension=None, identifier=None, axes=None, cs_unit=None):
+    """
+    A Coordinate System: a set of basis vectors defining an ordered collection
+    of Axes.
+
+    """
+    CSTYPES = set(('affine', 'Cartesian', 'cylindrical', 'ellipsoidal',
+                   'linear', 'parametric', 'polar', 'spherical', 'temporal',
+                   'vertical'))
+
+    def __init__(self, cstype='', dimension=None, identifier=None, axes=None,
+                 cs_unit=None):
         """
         Create a CSystem.
 
         Kwargs:
 
             * cstype
-            * dimension - Integer: the number of degrees of freedom the basis is defined over.
+            * dimension - Integer: the number of degrees of freedom the basis
+                                   is defined over.
             * identifier - String
             * axes - A list of :class:`Axis` instances.
 
@@ -109,7 +128,8 @@ class CSystem(object):
             self.cs_unit = cs_unit
 
     def __str__(self):
-        return '{} {}, ({}) {}'.format(self.identifier, self.cstype, self.dimension, self.axes)
+        return '{} {}, ({}) {}'.format(self.identifier, self.cstype,
+                                       self.dimension, self.axes)
 
     def __repr__(self):
         return self.__str__()
@@ -121,7 +141,8 @@ class CSystem(object):
     @cstype.setter
     def cstype(self, cstype):
         if cstype not in self.CSTYPES:
-            msg = '{} not in list of valid CSTypes:\n\t{}'.format(cstype, self.CSTYPES)
+            msg = '{} not in list of valid CSTypes:\n\t{}'.format(cstype,
+                                                                  self.CSTYPES)
             raise ValueError(msg)
         self._cst = cstype
 
@@ -132,7 +153,8 @@ class CSystem(object):
     @cs_unit.setter
     def cs_unit(self, cs_unit):
         if set([axis.unit for axis in self.axes]) != set((None,)):
-           raise ValueError('CS unit cannot be set if contained axes have units')
+            raise ValueError('CS unit cannot be set if contained axes '
+                             'have units defined.')
         self._csu = cs_unit
 
     def wktcrs(self, ind=0):
@@ -140,45 +162,54 @@ class CSystem(object):
                    '{ind}{axes}')
         axes_string = ',\n' + ind * '  '
         axes_string = axes_string.join([ax.wktcrs(ind+1) for ax in self.axes])
-        result = pattern.format(ind=ind*'  ', cstype=self.cstype, dim=self.dimension,
-                                axes=axes_string)
+        result = pattern.format(ind=ind*'  ', cstype=self.cstype,
+                                dim=self.dimension, axes=axes_string)
         return result
 
     def validate(self, exceptions=None):
         if exceptions is None:
             exceptions = []
         if self.dimension != len(self.axes):
-            msg = ('The list of axes:\n{} must be the same length as the dimension value '
+            msg = ('The list of axes:\n{} must be the same length as the '
+                   'dimension value '
                    'of the CSystem: {}'.format(self.axes, self.dimension))
             exceptions.append(ValueError(msg))
         return exceptions
 
-    wkt_pattern = re.compile('CS\[(?P<cstype>\w+)\s*,\s*(?P<dim>[0-9\.]+)\],(?P<axes>.+)')
+    wkt_pattern = re.compile('CS\[(?P<cstype>\w+)\s*,\s*(?P<dim>[0-9\.]+)\],'
+                             '(?P<axes>.+)')
+
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
         match = cls.wkt_pattern.match(wktcrs_string)
         cs = None
         if match:
-            ax_list = re.findall('\s*(AXIS\[.+?\]\]),?\s*', match.group('axes'))
+            ax_list = re.findall('\s*(AXIS\[.+?\]\]),?\s*',
+                                 match.group('axes'))
             if ax_list:
                 axes = [Axis.parse_wktcrs(ax) for ax in ax_list]
                 cs = cls(match.group('cstype'), match.group('dim'),
                          identifier='', axes=axes)
             else:
-                ax_list = re.findall('\s*(AXIS\[.+?\]),?\s*', match.group('axes'))
+                ax_list = re.findall('\s*(AXIS\[.+?\]),?\s*',
+                                     match.group('axes'))
                 axes = [Axis.parse_wktcrs(ax) for ax in ax_list]
-                unitstr = re.match('.*,([A-Z]+UNIT\[.*\])', match.group('axes'))
-                unit = terra.units.BaseUnit.parse_wktcrs(unitstr.groups()[0], strict=strict)
+                unitstr = re.match('.*,([A-Z]+UNIT\[.*\])',
+                                   match.group('axes'))
+                unit = terra.units.BaseUnit.parse_wktcrs(unitstr.groups()[0],
+                                                         strict=strict)
                 cs = cls(match.group('cstype'), match.group('dim'),
                          identifier='', axes=axes, cs_unit=unit)
         return cs
 
+
 class Ellipsoid(cartopy.crs.Globe):
     """"""
-    def __init__(self, name='', semimajor_axis=None, inverse_flattening=0, lunit=None):
+    def __init__(self, name='', semimajor_axis=None, inverse_flattening=0,
+                 lunit=None):
         """
         Create an Ellipsoid
-        
+
         Kwargs:
 
             * name - String.
@@ -186,14 +217,15 @@ class Ellipsoid(cartopy.crs.Globe):
             * inverse_flattening - String or Float, a string will be preserved.
             * lunit - :class:`terra.units.LenthUnit` instance.
 
-        """ 
+        """
         self.name = name
         self.semimajor_axis = semimajor_axis
         self.inverse_flattening = inverse_flattening
         self.lunit = lunit
 
     def __str__(self):
-        return '{}, {}, {}, {}'.format(self.name, self.semimajor_axis, self.inverse_flattening, self.lunit)
+        return '{}, {}, {}, {}'.format(self.name, self.semimajor_axis,
+                                       self.inverse_flattening, self.lunit)
 
     def __repr__(self):
         return self.__str__()
@@ -237,25 +269,31 @@ class Ellipsoid(cartopy.crs.Globe):
         else:
             result = 1 / self.inverse_flattening
         return result
-    
 
     def wktcrs(self, ind=0):
         pattern = ('{ind}ELLIPSOID["{name}",{sma},{ifl},\n'
                    '{ind}  {unit}]')
-        result = pattern.format(ind=ind*'  ', name=self.name, sma=self.semimajor_axis_string,
-                                ifl=self.inverse_flattening_string, unit=self.lunit.wktcrs(ind+1))
+        result = pattern.format(ind=ind*'  ', name=self.name,
+                                sma=self.semimajor_axis_string,
+                                ifl=self.inverse_flattening_string,
+                                unit=self.lunit.wktcrs(ind+1))
         return result
 
-    wkt_pattern = re.compile('\s*ELLIPSOID\["(?P<name>[a-zA-Z0-9\s]+)"\s*,\s*(?P<smax>[0-9\.]+)\s*,'
-                             '\s*(?P<invf>[0-9\.]+)\s*,\s*(?P<lunit>LENGTHUNIT\[.+\])\]\s*')
+    wkt_pattern = re.compile('\s*ELLIPSOID\["(?P<name>[a-zA-Z0-9\s]+)"\s*,'
+                             '\s*(?P<smax>[0-9\.]+)\s*,'
+                             '\s*(?P<invf>[0-9\.]+)\s*,'
+                             '\s*(?P<lunit>LENGTHUNIT\[.+\])\]\s*')
+
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
+        match = cls.wkt_pattern.match(wktcrs_string)  # , strict=strict)
         ellipsoid = None
         if match:
             lunit = terra.units.BaseUnit.parse_wktcrs(match.group('lunit'))
-            ellipsoid = Ellipsoid(name=match.group('name'), semimajor_axis=match.group('smax'),
-                                  inverse_flattening=match.group('invf'), lunit=lunit)
+            ellipsoid = Ellipsoid(name=match.group('name'),
+                                  semimajor_axis=match.group('smax'),
+                                  inverse_flattening=match.group('invf'),
+                                  lunit=lunit)
         return ellipsoid
 
 
@@ -269,7 +307,11 @@ class GeodeticDatum(cartopy.crs.Geodetic):
 
     @property
     def globe(self):
-        """Return a copy of the ellipsoid with the proj4 datum defined from the :class:`Datum` name."""
+        """
+        Return a copy of the ellipsoid with the proj4 datum defined from
+        the :class:`Datum` name.
+
+        """
         ellipsoid = copy.copy(self.ellipsoid)
         if ellipsoid is not None:
             ellipsoid.datum = self.wkt2proj.get(self.name)
@@ -278,7 +320,6 @@ class GeodeticDatum(cartopy.crs.Geodetic):
     @property
     def wkt2proj(self):
         return {'World Geodetic System 1984': 'WGS84'}
-
 
     def wktcrs(self, ind=0):
         pattern = ('{ind}DATUM["{name}",\n'
@@ -291,39 +332,15 @@ class GeodeticDatum(cartopy.crs.Geodetic):
 
     wkt_pattern = re.compile('DATUM\["(?P<name>[a-zA-Z0-9 ]+)",'
                              '(?P<ellps>.+)\]')
+
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
+        match = cls.wkt_pattern.match(wktcrs_string)  # , strict=strict)
         gd = None
         if match:
             ellipsoid = Ellipsoid.parse_wktcrs(match.group('ellps'), strict)
             gd = GeodeticDatum(name=match.group('name'), ellipsoid=ellipsoid)
         return gd
-
-
-
-# geodetic
-## Cartesian 3
-## ellipsoidal 2 or 3
-## spherical 	3
-# projected
-## Cartesian 2
-# vertical
-## vertical 1
-# engineering
-## affine 2 or 3
-## Cartesian 2 or 3
-## cylindrical 3
-## linear 1
-## polar 2
-## spherical 3
-# image
-## affine 2
-## Cartesian 2
-# parametric
-## parametric 1
-# temporal
-## time 1 
 
 
 class CRS(object):
@@ -364,29 +381,35 @@ class CRS(object):
             if self.coord_system.name not in self.allowed_cs_names:
                 msg = ('The coord system must be one of the allowed names')
                 exceptions.append(ValueError(msg))
-            if self.coord_system.dimension not in self.allowed_dimension_size.get(self.coord_system.name):
-                msg = ('The coord system dimension size must be allowed for the coord system name.')
+            if (self.coord_system.dimension not in
+               self.allowed_dimension_size.get(self.coord_system.name)):
+                msg = ('The coord system dimension size must be allowed for '
+                       'the coord system name.')
                 exceptions.append(ValueError(msg))
             exceptions = exceptions + self.coord_system.validate()
         return exceptions
+
     def wktcrs(self, ind=0):
         pattern = ('{ind}{crs_kw}["{name}",\n'
                    '{ind}{datum}'
                    '{ind}{cs}]\n')
-        result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
-                                datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
+        result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword,
+                                name=self.crs_name,
+                                datum=self.datum.wktcrs(ind),
+                                cs=self.coord_system.wktcrs(ind))
         return result
 
 
 class GeodeticCRS(CRS):
     """
     A geodetic coordinate reference system.
+
     """
     # Class attribute, as defined in ISO19162
-    geodetic_crs= ('<geodetic crs keyword> <left delimiter> <crs name> '
-                   '<wkt separator> <geodetic datum> <wkt separator> '
-                   '<coordinate system> <scope extent identifier remark> '
-                   '<right delimiter>')
+    geodetic_crs = ('<geodetic crs keyword> <left delimiter> <crs name> '
+                    '<wkt separator> <geodetic datum> <wkt separator> '
+                    '<coordinate system> <scope extent identifier remark> '
+                    '<right delimiter>')
     geodetic_crs_keyword = 'GEODCRS'
     geodetic_crs_keyword_set = set((geodetic_crs_keyword, 'GEODETICCRS'))
     CSTYPESDIMS = dict((('Cartesian', set((3,))),
@@ -396,32 +419,17 @@ class GeodeticCRS(CRS):
                              '"([a-zA-Z0-9 ]+)",\s*'
                              '(DATUM\[.+\]),\s*'
                              '(CS\[.+\])\]')
-                             
 
     @property
     def geodetic_datum(self):
         return self.datum
+
     @geodetic_datum.setter
     def geodetic_datum(self, gd):
         if not (isinstance(gd, GeodeticDatum) or None):
-            raise TypeError('GeodeticDatum required, {} provided'.format(str(gd)))
+            raise TypeError('GeodeticDatum required, {} '
+                            'provided'.format(str(gd)))
         self.datum = gd
-
-    # def wktcrs(self, ind=0):
-    #     output = ('   GEODCRS["WGS 84",\n'
-    #               '     DATUM["World Geodetic System 1984",\n'
-    #               '       ELLIPSOID["WGS 84",6378137,298.257223563,\n'
-    #               '         LENGTHUNIT["metre",1.0]]],\n'
-    #               '     CS[ellipsoidal,3],\n'
-    #               '       AXIS["(lat)",north,ANGLEUNIT["degree",0.0174532925199433]],\n'
-    #               '       AXIS["(lon)",east,ANGLEUNIT["degree",0.0174532925199433]],\n'
-    #               '       AXIS["ellipsoidal height (h)",up,LENGTHUNIT["metre",1.0]]]\n')
-    #     pattern = ('{ind}{crs_kw}["{name}",\n'
-    #                '{ind}{datum}'
-    #                '{ind}{cs}]\n')
-    #     result = pattern.format(ind=ind*'  ', crs_kw=self.geodetic_crs_keyword, name=self.crs_name,
-    #                             datum=self.datum.wktcrs(ind), cs=self.coord_system.wktcrs(ind))
-    #     return result
 
     def allowed_coord_names(self):
         return self.allowed_dimension_size.keys()
@@ -443,11 +451,15 @@ class GeodeticCRS(CRS):
 
 
 class TemporalCRS(CRS):
+    """
+    A temporal coordinate reference system.
+
+    """
     # Class attribute, as defined in ISO19162
-    geodetic_crs= ('<temporal crs keyword> <left delimiter> <crs name> '
-                   '<wkt separator> <temporal datum> <wkt separator> '
-                   '<coordinate system> <scope extent identifier remark> '
-                   '<right delimiter>')
+    geodetic_crs = ('<temporal crs keyword> <left delimiter> <crs name> '
+                    '<wkt separator> <temporal datum> <wkt separator> '
+                    '<coordinate system> <scope extent identifier remark> '
+                    '<right delimiter>')
     temporal_crs_keyword = 'TIMECRS'
     temporal_crs_keyword_set = set((temporal_crs_keyword,))
     CSTYPESDIMS = {'time': set((1,))}
@@ -455,10 +467,6 @@ class TemporalCRS(CRS):
                              '"([a-zA-Z0-9 ]+)",\s*'
                              '(TDATUM\[.+\]),\s*'
                              '(CS\[.+\])\]')
-
-       # TIMECRS["GPS Time",
-       #            TDATUM["Time origin",TIMEORIGIN[1980-01-01T00:00:00.0Z]],
-       #            CS[temporal,1],AXIS["time",future],TIMEUNIT["day",86400.0]]
 
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
@@ -477,15 +485,17 @@ class TemporalCRS(CRS):
         """"""
         calendar = terra.datetime.ISOGregorian()
         epoch = terra.datetime.datetime(year, month, day,
-                               hour, minute, second,
-                               microsecond, calendar=calendar)
+                                        hour, minute, second,
+                                        microsecond, calendar=calendar)
         edt = terra.datetime.EpochDateTimes(time_values, tunit, epoch)
 
     def datetime_strings(self, coord_values):
         u = self.coord_system.cs_unit.unit
-        edt = terra.datetime.EpochDateTimes(coord_values, u, self.datum.timeorigin)
+        edt = terra.datetime.EpochDateTimes(coord_values, u,
+                                            self.datum.timeorigin)
         return str(edt)
-        
+
+
 class TemporalDatum(object):
     """"""
 
@@ -494,32 +504,35 @@ class TemporalDatum(object):
         if isinstance(timeorigin, terra.datetime.datetime):
             self.timeorigin = timeorigin
         else:
-            pattern = re.compile('([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9\.]+)Z')
-            match = pattern.match(timeorigin)
-            if match:
-                self.timeorigin = terra.datetime.datetime(int(match.groups()[0]), int(match.groups()[1]), int(match.groups()[2]), int(match.groups()[3]), int(match.groups()[4]), float(match.groups()[5]),
-                                                          calendar=terra.datetime.ISOGregorian())
+            pattern = re.compile('([0-9]+)-([0-9]+)-([0-9]+)'
+                                 'T([0-9]+):([0-9]+):([0-9\.]+)Z')
+            mch = pattern.match(timeorigin)
+            if mch:
+                isg = terra.datetime.ISOGregorian()
+                self.timeorigin = terra.datetime.datetime(int(mch.group(1)),
+                                                          int(mch.group(2)),
+                                                          int(mch.group(3)),
+                                                          int(mch.group(4)),
+                                                          int(mch.group(5)),
+                                                          float(mch.group(6)),
+                                                          calendar=isg)
         self.name = name
 
     def wktcrs(self, ind=0):
         pattern = ('{ind}DATUM["{name}",{timo}],\n')
 
-
         result = pattern.format(ind=ind*'  ', name=self.name,
                                 timo=self.timeorigin)
         return result
 
-       #            TDATUM["Time origin",TIMEORIGIN[1980-01-01T00:00:00.0Z]],
-
-
     wkt_pattern = re.compile('TDATUM\["(?P<name>[a-zA-Z0-9 ]+)",'
                              'TIMEORIGIN\[(?P<tstamp>.+)\]\]')
+
     @classmethod
     def parse_wktcrs(cls, wktcrs_string, strict=False):
-        match = cls.wkt_pattern.match(wktcrs_string)#, strict=strict)
+        match = cls.wkt_pattern.match(wktcrs_string)  # , strict=strict)
         gd = None
         if match:
-            #ellipsoid = Ellipsoid.parse_wktcrs(match.group('ellps'), strict)
             timeorigin = match.group('tstamp')
             gd = TemporalDatum(name=match.group('name'), timeorigin=timeorigin)
         return gd
@@ -529,8 +542,8 @@ def parse_wktcrs(wktcrs_string, strict=False):
     """
     Returns a Terra Coordinate Reference System, if one can be idenitifed, from
     a provided plain text string conforming to ISO19162.
-    If the identity of the Terra type is inconclusive or unable to be defined, None
-    is returned.
+    If the identity of the Terra type is inconclusive or unable to be defined,
+    None is returned.
 
     Args:
 
@@ -538,8 +551,8 @@ def parse_wktcrs(wktcrs_string, strict=False):
 
     Kwargs:
 
-        * strict - Boolean: set to True to raise exceptions in cases of failed parsing 
-                            and failure to validate objects.
+        * strict - Boolean: set to True to raise exceptions in cases of failed
+                            parsing and failure to validate objects.
 
     """
     exceptions = []
@@ -556,10 +569,8 @@ def parse_wktcrs(wktcrs_string, strict=False):
     elif crstype in TemporalCRS.temporal_crs_keyword_set:
         crs = TemporalCRS.parse_wktcrs(wktcrs)
     else:
-        import pdb; pdb.set_trace()
         raise TypeError('Failed to parse wktcrs string'
                         ':{}'.format(wktcrs_string))
     if strict and exceptions:
         raise ValueError('\n'.join(exceptions))
     return crs
-

@@ -20,10 +20,13 @@ import requests
 
 import terra.units
 
-## must be in context to know what 'CAL' means
-## '^([0-9]{4})-([0-9]{2})-([0-9]{2})(CAL)([0-9]{2}):([0-9]{2}):([0-9]{2})'
-dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})(T)([0-9]{2}):([0-9]{2}):([0-9]{2})'),
-                     re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})( )([0-9]{2}):([0-9]{2}):([0-9]{2})')]
+# must be in context to know what 'CAL' means
+# '^([0-9]{4})-([0-9]{2})-([0-9]{2})(CAL)([0-9]{2}):([0-9]{2}):([0-9]{2})'
+dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})'
+                                '(T)([0-9]{2}):([0-9]{2}):([0-9]{2})'),
+                     re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})'
+                                '( )([0-9]{2}):([0-9]{2}):([0-9]{2})')]
+
 
 def parse_datetime(instring, calendar):
     """
@@ -36,11 +39,12 @@ def parse_datetime(instring, calendar):
     for pattern in dtstring_patterns:
         match = pattern.match(instring)
         if match:
-            result = datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)),
-                              int(match.group(5)), int(match.group(6)), int(match.group(7)),
+            result = datetime(int(match.group(1)), int(match.group(2)),
+                              int(match.group(3)), int(match.group(5)),
+                              int(match.group(6)), int(match.group(7)),
                               calendar=calendar, tsep=match.group(4))
     return result
-    
+
 
 class date(object):
     """
@@ -55,7 +59,8 @@ class date(object):
         self.calendar = calendar
         if calendar is not None:
             if month in [mn[0:3] for mn in calendar.month_names]:
-                for i, mon in enumerate([mn[0:3] for mn in calendar.month_names]):
+                for i, mon in enumerate([mn[0:3] for mn in
+                                         calendar.month_names]):
                     if month == mon:
                         month = i + 1
         self.month = month
@@ -75,7 +80,8 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         yearlt = self.year < other.year
         yeare = self.year == other.year
         monthlt = self.month < other.month
@@ -92,14 +98,14 @@ class date(object):
                     result = True
         return result
 
-
     def __le__(self, other):
         if not isinstance(other, date):
             msg = "unsupported operand type(s) for +: '{}' and '{}'"
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return self.__lt__(other) or self.__eq__(other)
 
     def __eq__(self, other):
@@ -108,7 +114,8 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         yeare = self.year == other.year
         monthe = self.month == other.month
         daye = self.day == other.day
@@ -120,7 +127,8 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return not self == other
 
     def __gt__(self, other):
@@ -129,7 +137,8 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         yeargt = self.year > other.year
         yeare = self.year == other.year
         monthgt = self.month > other.month
@@ -152,14 +161,16 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return self.__gt__(other) or self.__eq__(other)
 
     def __sub__(self, other):
         if isinstance(other, date):
             if not self.calendar == other.calendar:
-                raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
-            return Duration(self, other)
+                raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                            other.calendar))
+            return CalendarDuration(self, other)
         elif isinstance(other, timedelta):
             if self.calendar is None:
                 calendar = GregorianNoLeapSecond()
@@ -171,7 +182,8 @@ class date(object):
             for day in range(other.days):
                 newday = newday - 1
                 days_in_month = calendar.month_day_map[newmonth - 1]
-                if calendar.is_leap_year(newyear) and newmonth == calendar.leap_year_date.month:
+                if (calendar.is_leap_year(newyear) and
+                   newmonth == calendar.leap_year_date.month):
                     days_in_month -= 1
                 if newday > days_in_month:
                     newday = newday - days_in_month
@@ -181,8 +193,10 @@ class date(object):
                         if not calendar.is_valid_year(newyear + yearstep):
                             yearstep = 2
                             if not calendar.is_valid_year(newyear + yearstep):
-                                raise ValueError('There are two adjacent skip years in this calendar '
-                                                 'period: {}, {}.'.format(newyear+1, newyear+2))
+                                msg = ('There are two adjacent skip years in '
+                                       'this calendar period: {}, {}.')
+                                msg = msg.format(newyear+1, newyear+2)
+                                raise ValueError(msg)
                         newyear -= yearstep
                         newmonth = newmonth - calendar.months_in_year
 
@@ -193,14 +207,14 @@ class date(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
 
-
     def __add__(self, other):
         if not isinstance(other, timedelta):
             msg = "unsupported operand type(s) for +: '{}' and '{}'"
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if other.seconds is not None or other.microseconds is not None:
-            raise ValueError('Neither seconds nor microseconds may be added to a date.')
+            raise ValueError('Neither seconds nor microseconds may be added '
+                             'to a date.')
         if other.days is None:
             raise ValueError('Adding None days to a date is not supported.')
 
@@ -218,7 +232,8 @@ class date(object):
         for day in range(other.days):
             newday = newday + 1
             days_in_month = calendar.month_day_map[newmonth - 1]
-            if calendar.is_leap_year(newyear) and newmonth == calendar.leap_year_date.month:
+            if (calendar.is_leap_year(newyear) and
+               newmonth == calendar.leap_year_date.month):
                 days_in_month += 1
             if newday > days_in_month:
                 newday = newday - days_in_month
@@ -228,12 +243,15 @@ class date(object):
                     if not calendar.is_valid_year(newyear + yearstep):
                         yearstep = 2
                         if not calendar.is_valid_year(newyear + yearstep):
-                            raise ValueError('There are two adjacent skip years in this calendar '
-                                             'period: {}, {}.'.format(newyear+1, newyear+2))
+                            msg = ('There are two adjacent skip years in this '
+                                   'calendar period: {}, {}.')
+                            msg = msg.format(newyear+1, newyear+2)
+                            raise ValueError(msg)
                     newyear += yearstep
                     newmonth = newmonth - calendar.months_in_year
-        
+
         return date(newyear, newmonth, newday, self.calendar)
+
 
 class time(object):
     """
@@ -272,6 +290,7 @@ class time(object):
         return 'terra.datetime.time({}, {}, {}, {})'.format(self.hour,
                                                             self.minute,
                                                             self.second, ms)
+
     def __add__(self, other):
         if not isinstance(other, timedelta):
             msg = "unsupported operand type(s) for +: '{}' and '{}'"
@@ -287,6 +306,7 @@ class time(object):
         newtime = time(hours, minutes, seconds)
         return newtime
 
+
 class datetime(object):
     """
     An idealized instant within a calendar, a combination of a
@@ -300,7 +320,7 @@ class datetime(object):
     """
     def __init__(self, year, month, day, hour=0, minute=0, second=0,
                  microsecond=0, tzinfo=None, calendar=None, tsep='T'):
-        
+
         # Design question: validate inputs?
         self.date = date(year, month, day, calendar)
         self.time = time(hour, minute, second, microsecond, tzinfo)
@@ -318,7 +338,8 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         result = False
         if self.date < other.date:
             result = True
@@ -339,7 +360,8 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return self.__lt__(other) or self.__eq__(other)
 
     def __eq__(self, other):
@@ -348,7 +370,8 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         datee = self.date == other.date
         houre = self.hour == other.hour
         minutee = self.munite == other.minute
@@ -361,7 +384,8 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return not self == other
 
     def __gt__(self, other):
@@ -370,7 +394,8 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         result = False
         if self.date > other.date:
             result = True
@@ -391,12 +416,12 @@ class datetime(object):
             msg = msg.format(type(self), type(other))
             raise TypeError(msg)
         if not self.calendar == other.calendar:
-            raise NotImplementedError('{} != {}'.format(self.calendar, other.calendar))
+            raise NotImplementedError('{} != {}'.format(self.calendar,
+                                                        other.calendar))
         return self.__gt__(other) or self.__eq__(other)
 
-
     def __sub__(self, other):
-        return Duration(self, other)
+        return CalendarDuration(self, other)
 
     @property
     def year(self):
@@ -443,8 +468,8 @@ class datetime(object):
             calendar = GregorianNoLeapSecond()
         else:
             calendar = self.calendar
-        if other.days is not None and other.seconds is None and other.microseconds is None:
-            
+        if (other.days is not None and
+           other.seconds is None and other.microseconds is None):
             newdate = self.date + other
             # shame to force this
             newtime = time()
@@ -458,39 +483,44 @@ class datetime(object):
             remainder = seconds % (24 * 60 * 60)
             for day, month, year in calendar.leapsecond_datetimes:
                 leap_second_date = date(year, month, day, calendar=calendar)
-                #print(self.date, '<', leap_second_date, '<', newdate)
                 if leap_second_date > self.date and leap_second_date < newdate:
                     remainder -= 1
             newtime = self.time + timedelta(seconds=remainder)
             if newtime.hour < 0:
                 newdate = newdate - timedelta(days=1)
                 newtime.hour += 24
-            
+
         else:
-            raise ValueError('A timedelta with days and seconds cannot be added to a datetime.')
-        
-        
-        result = datetime(newdate.year, newdate.month, newdate.day, newtime.hour,
-                          newtime.minute, newtime.second, newtime.microsecond, newtime.tzinfo,
+            raise ValueError('A timedelta with days and seconds cannot be '
+                             'added to a datetime.')
+
+        result = datetime(newdate.year, newdate.month, newdate.day,
+                          newtime.hour, newtime.minute, newtime.second,
+                          newtime.microsecond, newtime.tzinfo,
                           calendar=self.calendar, tsep=self.tsep)
         return result
 
 
 def convert_datetimes(datetimes):
     """
-    Return a datetime or array of datetimes which may have been python `datetime.datetime` instances.
+    Return a datetime or array of datetimes which may have been python
+    `datetime.datetime` instances.
+
     """
     def _datetime_conversion(adt):
         if isinstance(adt, datetime):
             result = datetime
-        elif (hasattr(adt, 'year') and hasattr(adt, 'month') and hasattr(adt, 'day') and
-              hasattr(adt, 'hour') and hasattr(adt, 'minute') and hasattr(adt, 'second') and
+        elif (hasattr(adt, 'year') and hasattr(adt, 'month') and
+              hasattr(adt, 'day') and hasattr(adt, 'hour') and
+              hasattr(adt, 'minute') and hasattr(adt, 'second') and
               hasattr(adt, 'microsecond') and hasattr(adt, 'tzinfo')):
             result = datetime(adt.year, adt.month, adt.day, adt.hour,
-                              adt.minute, adt.second, adt.microsecond, adt.tzinfo,
+                              adt.minute, adt.second, adt.microsecond,
+                              adt.tzinfo,
                               calendar=GregorianNoLeapSecond())
         else:
-            raise TypeError('cannot return datetime from {}'.format(str(datetime)))
+            msg = 'cannot return datetime from {}'.format(str(datetime))
+            raise TypeError(msg)
         return result
     if isinstance(datetimes, np.ndarray):
         pass
@@ -499,8 +529,7 @@ def convert_datetimes(datetimes):
     return result
 
 
-## OWL:Time call this class something else: this is a CalendarDuration
-class Duration(object):
+class CalendarDuration(object):
     """
     Represents a temporal period between two date or two datetime instances.
 
@@ -513,8 +542,9 @@ class Duration(object):
     """
     def __init__(self, end, start):
         if start.calendar != end.calendar:
-            raise ValueError('Durations are not well defined across differing calendars '
-                             'for terra.datetime instances.')
+            raise ValueError('CalendarDurations are not well defined across '
+                             'differing calendars for '
+                             'terra.datetime instances.')
         if start.calendar is None:
             self.calendar = GregorianNoLeapSecond()
         else:
@@ -537,16 +567,16 @@ class Duration(object):
                 if not self.end.day < self.start.day:
                     result -= 1
         return result
-        
+
     # @property
     # def months(self):
-    #     # requires that the calendars are not None and the number of months per year
+    #     # requires that calendars are not None and number of months per year
     #     if self.start.year is None or self.end.year is None:
     #         result = None
     #     else:
     #         result = self.end.year - self.start.year
     #     return result
-        
+
     @property
     def days(self):
         """Return the floor of the number of days."""
@@ -554,8 +584,8 @@ class Duration(object):
             adate = adate + timedelta(days=1)
             days += 1
             if (self.calendar.is_leap_year(adate.year) and
-                adate.month == self.calendar.leap_year_date.month and
-                adate.day == (self.calendar.leap_year_date.day - 1)):
+               adate.month == self.calendar.leap_year_date.month and
+               adate.day == (self.calendar.leap_year_date.day - 1)):
                 days += 1
                 adate = adate + timedelta(days=1)
             return adate, days
@@ -566,12 +596,14 @@ class Duration(object):
             # Accumulate to calculate
             adate = copy.copy(self.start)
             days = 0
-            if self.start.year == self.end.year and self.start.month == self.end.month:
+            if (self.start.year == self.end.year and
+               self.start.month == self.end.month):
                 for d in range(self.start.day, self.end.day):
                     adate, days = _add_day(adate, days)
             else:
                 # Handle the first month, which may be partial.
-                for d in range(self.calendar.month_day_map[self.start.month - 1])[self.start.day:]:
+                mlen = self.calendar.month_day_map[self.start.month - 1]
+                for d in range(mlen)[self.start.day:]:
                     adate, days = _add_day(adate, days)
                 if self.end.year == self.start.year:
                     if self.end.month - self.start.month > 1:
@@ -579,12 +611,12 @@ class Duration(object):
                             for d in range(month_length):
                                 adate, days = _add_day(adate, days)
                 else:
-                    # handle up tho the end of the first year. 
+                    # handle up to the end of the first year.
                     for month_length in self.calendar.month_day_map[self.start.month:]:
                         for d in range(month_length):
                             adate, days = _add_day(adate, days)
                     # Handle all the middle (full) years.
-                    for year in range(self.end.year - self.start.year -1):
+                    for year in range(self.end.year - self.start.year - 1):
                         for month_length in self.calendar.month_day_map:
                             for d in range(month_length):
                                 adate, days = _add_day(adate, days)
@@ -597,9 +629,7 @@ class Duration(object):
                     adate, days = _add_day(adate, days)
             result = days
         return result
-        
-        
-        
+
     def total_hours(self):
         if self.start.hour is None or self.end.hour is None:
             result = None
@@ -607,7 +637,7 @@ class Duration(object):
             hours = self.end.hour - self.start.hour
             result = self.days * 24 + hours
         return result
-        
+
     def total_minutes(self):
         if self.start.minute is None or self.end.minute is None:
             result = None
@@ -690,7 +720,6 @@ class timedelta(object):
 #         return Duration(self, other)
 
 
-
 # class TimeDuration(Duration):
 #     """
 #     A datetime duration, represented by whole unit like quantities.
@@ -711,7 +740,6 @@ class timedelta(object):
 #         return Duration(self, other)
 
 
-
 # class SegmentedDuration(object):
 #     """
 #     A datetime duration, represented by collections of unit like quantities.
@@ -719,7 +747,6 @@ class timedelta(object):
 #     particular years.
 
 #     All defined elements match.
-    
 
 #     """
 #     def __init__(self, year=None, month=None, day=None, hour=None,
@@ -734,7 +761,7 @@ class IntegerDatetimeOffsets(object):
     """
     A datetime offset array, an integer number of whole temporal unit
     quantities.
-    
+
     """
     def __init__(self, offsets, unit):
         # Check this is a numpy array of integers.
@@ -745,13 +772,12 @@ class IntegerDatetimeOffsets(object):
             unit = terra.units.TemporalUnit(unit)
         self.unit = unit
 
+
 class EpochDateTimes(object):
     """
     An collection of instants within a calendar,
-    offsets from a defined :class:`datetime` epoch with respect to 
+    offsets from a defined :class:`datetime` epoch with respect to
     its calendar.
-
-    
 
     """
     def __init__(self, offsets, unit, epoch):
@@ -776,30 +802,33 @@ class EpochDateTimes(object):
         dts = self.datetimes()
         result = str(dts)
         if len(dts) == 1:
-            result = str(dts[0]) 
+            result = str(dts[0])
         return result
 
     def datetimes(self):
         """Return an array of terra.datetime.datetime objects."""
         if self.offsets.unit == 'days':
             result = np.array([self.epoch + timedelta(days=v)
-                                for v in self.offsets.offsets])
+                               for v in self.offsets.offsets])
 
         elif self.offsets.unit == 'seconds':
             result = np.array([self.epoch + timedelta(seconds=v)
-                                   for v in self.offsets.offsets])
+                               for v in self.offsets.offsets])
 
-        elif self.offsets.unit == 'hours' and not self.epoch.calendar.leapsecond_datetimes:
+        elif (self.offsets.unit == 'hours' and
+              not self.epoch.calendar.leapsecond_datetimes):
             result = np.array([self.epoch + timedelta(seconds=v*60*60)
-                                   for v in self.offsets.offsets])
+                               for v in self.offsets.offsets])
 
         else:
-            raise ValueError("{} not in processable units: ['days', 'seconds', 'hours']".format(self.offsets.unit))
+            msg = "{} not in processable units: ['days', 'seconds', 'hours']"
+            msg = msg.format(self.offsets.unit)
+            raise ValueError(msg)
         return result
-        
 
     def __repr__(self):
         return self.__str__()
+
 
 class Calendar(object):
     """
@@ -822,8 +851,9 @@ class Calendar(object):
             month_names = []
         self.month_names = month_names
         if len(month_names) != len(month_day_map):
-            raise ValueError('month names:\n{}\nis not the same length as month_day_map:'
-                             '\n{}\n'.format(month_names, month_day_map))
+            raise ValueError('month names:\n{}\nis not the same length as '
+                             'month_day_map:\n'
+                             '{}\n'.format(month_names, month_day_map))
         self.month_day_map = month_day_map
         if leapsecond_datetimes is None:
             leapsecond_datetimes = []
@@ -868,11 +898,13 @@ class Calendar(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
 class G360Day(Calendar):
     def __init__(self):
         url = None
         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December']
+                       'July', 'August', 'September', 'October', 'November',
+                       'December']
         month_day_map = [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]
 
         # leapsecond_datetimes = None
@@ -887,20 +919,25 @@ class GregorianNoLeapSecond(Calendar):
     def __init__(self):
         url = None
 
-
         leap_year_date = date(None, 2, 29)
         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December']
+                       'July', 'August', 'September', 'October', 'November',
+                       'December']
         month_day_map = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
         leapsecond_datetimes = None
-        weekday_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        weekday_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday',
+                         'Thursday', 'Friday', 'Saturday']
         weekday_start_date = date(1995, 1, 1)
         null_years = [0]
-        super(GregorianNoLeapSecond, self).__init__(url, leap_year_date, month_names,
-                                                    month_day_map, leapsecond_datetimes,
+        super(GregorianNoLeapSecond, self).__init__(url, leap_year_date,
+                                                    month_names,
+                                                    month_day_map,
+                                                    leapsecond_datetimes,
                                                     weekday_names,
-                                                    weekday_start_date, null_years)
+                                                    weekday_start_date,
+                                                    null_years)
+
     def is_leap_year(self, year):
         """Return True for leap years, False for non-leap years."""
         return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
@@ -908,6 +945,7 @@ class GregorianNoLeapSecond(Calendar):
     @property
     def days_in_leap_year(self):
         return self.days_in_year + 1
+
 
 class ISOGregorian(GregorianNoLeapSecond):
     def __init__(self):
@@ -949,7 +987,8 @@ class ISOGregorian(GregorianNoLeapSecond):
             if res.status_code != 200:
                 instr = static
             instr = res.text.split('\n')
-        except Exception:#requests.packages.urllib3.exceptions.MaxRetryError:
+        # requests.packages.urllib3.exceptions.MaxRetryError:
+        except Exception:
             instr = static.split('\n')
 
         leap_years = []
