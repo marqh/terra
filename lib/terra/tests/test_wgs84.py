@@ -30,27 +30,29 @@ class TestWGS84(unittest.TestCase):
         mu = terra.units.LengthUnit("metre", '1.0')
         axes = [terra.Axis(abbreviation='lat', direction='north', unit=du),
                 terra.Axis(abbreviation='lon', direction='east', unit=du),
-                terra.Axis(name='ellipsoidal height', abbreviation='h', direction='up', unit=mu),]
+                terra.Axis(name='ellipsoidal height', abbreviation='h',
+                           direction='up', unit=mu),]
         cs = terra.CSystem(cstype='ellipsoidal', dimension=3, axes=axes)
         ep = terra.Ellipsoid(name="WGS 84", semimajor_axis='6378137',
                              inverse_flattening='298.257223563', lunit=mu)
-        gd = terra.GeodeticDatum(name="World Geodetic System 1984", ellipsoid=ep)
+        gd = terra.GeodeticDatum(name="World Geodetic System 1984",
+                                 ellipsoid=ep)
         geodcrs = terra.GeodeticCRS(name="WGS 84", datum=gd, coord_system=cs)
-        # print(geodcrs.wktcrs(1))
-        # print(self.wktoutput)
-        # print(geodcrs.wktcrs_strict())
         self.assertEqual(geodcrs.wktcrs(1), self.wktoutput,
-                         msg='\n{}\n != \n{}\n'.format(geodcrs.wktcrs(1), self.wktoutput))
+                         msg='\n{}\n != \n{}\n'.format(geodcrs.wktcrs(1),
+                                                       self.wktoutput))
 
     def test_parse_wkt(self):
         wgs84 = terra.parse_wktcrs(self.wktoutput, strict=True)
         self.assertEqual(wgs84.wktcrs(1), self.wktoutput,
-                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1), self.wktoutput))
+                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1),
+                                                       self.wktoutput))
 
     def test_parse_wkt_strict(self):
         wgs84 = terra.parse_wktcrs(self.wktinput, strict=True)
         self.assertEqual(wgs84.wktcrs_strict(), self.wktinput,
-                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1), self.wktoutput))
+                         msg='\n{}\n != \n{}\n'.format(wgs84.wktcrs(1),
+                                                       self.wktoutput))
         
      
 if __name__ == '__main__':
