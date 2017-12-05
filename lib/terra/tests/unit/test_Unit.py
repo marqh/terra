@@ -1,5 +1,5 @@
 
-import terra
+import terra.units
 import unittest
 
 class TestUnit(unittest.TestCase):
@@ -19,10 +19,10 @@ class TestUnit(unittest.TestCase):
 
 class TestAngleUnit(unittest.TestCase):
     def test_str(self):
-        au = terra.AngleUnit("degree", 0.0174532925199433)
+        au = terra.units.AngleUnit("degree", 0.0174532925199433)
         self.assertEqual('ANGLEUNIT["degree",0.0174532925199433]', str(au))
     def test_repr(self):
-        au = terra.AngleUnit("degree", 0.0174532925199433)
+        au = terra.units.AngleUnit("degree", 0.0174532925199433)
         self.assertEqual('ANGLEUNIT["degree",0.0174532925199433]', repr(au))
      
 if __name__ == '__main__':
