@@ -2,7 +2,7 @@ import copy
 import re
 import six
 
-import cartopy
+import terra.cartopy_import_manager as ccrs
 
 import terra.units
 from terra.units import BaseUnit
@@ -203,7 +203,7 @@ class CSystem(object):
         return cs
 
 
-class Ellipsoid(cartopy.crs.Globe):
+class Ellipsoid(ccrs.Globe):
     """"""
     def __init__(self, name='', semimajor_axis=None, inverse_flattening=0,
                  lunit=None):
@@ -297,7 +297,7 @@ class Ellipsoid(cartopy.crs.Globe):
         return ellipsoid
 
 
-class GeodeticDatum(cartopy.crs.Geodetic):
+class GeodeticDatum(ccrs.Geodetic):
     """"""
 
     def __init__(self, name='', ellipsoid=None):
@@ -370,7 +370,7 @@ class CRS(object):
 
     def as_cartopy_crs(self):
         result = self.datum
-        if not isinstance(result, cartopy.CRS):
+        if not isinstance(result, ccrs.CRS):
             raise TypeError('This CRS cannot return a cartopy CRS.')
         return result
 

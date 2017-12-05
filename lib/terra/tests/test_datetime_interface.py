@@ -157,7 +157,8 @@ class TestParseDatetime(unittest.TestCase):
         instring = '1970-01-01 00:00:00'
         adate = datetime.datetime.strptime(instring, '%Y-%m-%d %H:%M:%S')
         tdate = terra.datetime.parse_datetime(instring, calendar=terra.datetime.ISOGregorian())
-        self.assertEqual(str(adate), str(tdate))        
+        self.assertEqual(datetime.datetime.strftime(adate, '%Y-%m-%dT%H:%M:%S'), str(tdate))
+
 
 if __name__ == '__main__':
     unittest.main()
