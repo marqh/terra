@@ -1,5 +1,6 @@
 
 import unittest
+import numpy as np
 
 import terra.datetime as datetime
 
@@ -17,6 +18,16 @@ class Testdate(unittest.TestCase):
     def test_string(self):
         adate = datetime.date(2001, 8, 7)
         self.assertEqual(str(adate), '2001-08-07')
+
+class TestOffset(unittest.TestCase):
+    def test_many_seconds(self):
+        origin = '1970-01-01 00:00:00Z'
+        ig = datetime.ISOGregorian()
+        tog = datetime.parse_datetime(origin, calendar=ig)
+        sample = datetime.EpochDateTimes(np.array(1513673731),
+                                         'second', epoch=tog)
+        self.assertEqual(str(sample), '2017-12-19T08:55:03')
+
 
 class Testtimedelta(unittest.TestCase):
     def test_foo(self):
