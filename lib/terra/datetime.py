@@ -510,7 +510,11 @@ class datetime(object):
         else:
             calendar = self.calendar
 
-        if other.quantity in ['years', 'months', 'days']:
+        result = ''
+        if other.value is None:
+            result = None
+
+        elif other.quantity in ['years', 'months', 'days']:
             newdate = self.date + other
 
             newtime = self.time
@@ -540,11 +544,11 @@ class datetime(object):
         else:
             raise ValueError('A timedelta with   cannot be '
                              'added to a datetime.')
-
-        result = datetime(newdate.year, newdate.month, newdate.day,
-                          newtime.hour, newtime.minute, newtime.second,
-                          tzinfo=newtime.tzinfo,
-                          calendar=self.calendar, tsep=self.tsep)
+        if result is not None:
+            result = datetime(newdate.year, newdate.month, newdate.day,
+                              newtime.hour, newtime.minute, newtime.second,
+                              tzinfo=newtime.tzinfo,
+                              calendar=self.calendar, tsep=self.tsep)
         return result
 
 
@@ -747,10 +751,12 @@ class timedelta(object):
             n = len(attrs) - attrs.count(None)
             raise ValueError('A timedelta must be initialised with one and '
                              'only one argument, {} given.\n'.format(n))
-
+        
         (self.quantity, self.value), = [(aname, anattr) for aname, anattr in
                                         zip(anames, attrs)
                                         if anattr is not None]
+        if isinstance(self.value, numpy.ma.core.MaskedConstant):
+            self.value = None
 
     def total_seconds(self):
         return None
@@ -866,9 +872,16 @@ class EpochDateTimes(object):
 
     def datetimes(self):
         """Return an array of terra.datetime.datetime objects."""
+        if not self.offsets.offsets.shape:
+            offsets = self.offsets.offsets.reshape((1,))
+        else:
+            offsets = self.offsets.offsets
+        for v in offsets:
+            td = timedelta(**{self.offsets.unit.unit: v})
 
+            res = self.epoch + td
         result = np.array([self.epoch + timedelta(**{self.offsets.unit.unit: v})
-                           for v in self.offsets.offsets])
+                           for v in offsets])
         return result
 
     def __repr__(self):
