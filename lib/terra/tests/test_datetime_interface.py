@@ -151,6 +151,14 @@ class TestIntegerDatetimeOffsetUTC(unittest.TestCase):
         edate = terra.datetime.EpochDateTimes(np.array((318211200 + 33333,)), 'seconds', epoch=tdate)
         self.assertEqual(bdate.isoformat(), str(edate))
 
+    def test_hours_offset(self):
+        adate = datetime.datetime(2001, 8, 7, 12)
+        nhours = 10
+        bdate = adate + datetime.timedelta(seconds=nhours*60*60)
+        tdate = terra.datetime.datetime(2001, 8, 7, 12, calendar=terra.datetime.ISOGregorian())
+        edate = terra.datetime.EpochDateTimes(np.array((nhours,)), 'hours', epoch=tdate)
+        self.assertEqual(bdate.isoformat(), str(edate))
+
 
 class TestParseDatetime(unittest.TestCase):
     def test_parse(self):
