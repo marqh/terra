@@ -28,6 +28,15 @@ class TestOffset(unittest.TestCase):
                                          'second', epoch=tog)
         self.assertEqual(str(sample), '2017-12-19T08:55:03')
 
+    def test_array_seconds(self):
+        origin = '1970-01-01 00:00:00Z'
+        ig = datetime.ISOGregorian()
+        tog = datetime.parse_datetime(origin, calendar=ig)
+        sample = datetime.EpochDateTimes(np.array((1513673731, 1513673735)),
+                                         'second', epoch=tog)
+        self.assertEqual(str(sample),
+                         "['2017-12-19T08:55:03' '2017-12-19T08:55:07']")
+
 
 class Testtimedelta(unittest.TestCase):
     def test_foo(self):

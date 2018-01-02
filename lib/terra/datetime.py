@@ -23,11 +23,11 @@ import terra.units
 
 # must be in context to know what 'CAL' means
 # '^([0-9]{4})-([0-9]{2})-([0-9]{2})(CAL)([0-9]{2}):([0-9]{2}):([0-9]{2})'
-dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})'
+dtstring_patterns = [re.compile('^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})'
                                 '(T)([0-9]{2}):([0-9]{2}):([0-9]{2})'),
-                     re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})'
+                     re.compile('^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})'
                                 '( )([0-9]{2}):([0-9]{2}):([0-9]{2})'),
-                     re.compile('^([0-9]{4})-([0-9]{2})-([0-9]{2})')]
+                     re.compile('^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})')]
 
 
 def parse_datetime(instring, calendar):
@@ -866,22 +866,31 @@ class EpochDateTimes(object):
     def __str__(self):
         dts = self.datetimes()
         result = str(dts)
-        if len(dts) == 1:
+        if not self.offsets.offsets.shape or len(dts) == 1:
             result = str(dts[0])
         return result
 
     def datetimes(self):
-        """Return an array of terra.datetime.datetime objects."""
+        """
+        Return an array of terra.datetime.datetime objects,
+        or the offsets array if there are problems with deriving
+        datetimes.
+        """
         if not self.offsets.offsets.shape:
             offsets = self.offsets.offsets.reshape((1,))
         else:
             offsets = self.offsets.offsets
-        for v in offsets:
-            td = timedelta(**{self.offsets.unit.unit: v})
+        if np.issubdtype(self.offsets.offsets.dtype, np.integer):
+            for v in offsets:
+                td = timedelta(**{self.offsets.unit.unit: v})
 
-            res = self.epoch + td
-        result = np.array([self.epoch + timedelta(**{self.offsets.unit.unit: v})
-                           for v in offsets])
+                res = self.epoch + td
+
+                result = np.array([str(self.epoch +
+                                       timedelta(**{self.offsets.unit.unit: v}))
+                                   for v in offsets])
+        else:
+            result = self.offsets.offsets
         return result
 
     def __repr__(self):
