@@ -881,14 +881,9 @@ class EpochDateTimes(object):
         else:
             offsets = self.offsets.offsets
         if np.issubdtype(self.offsets.offsets.dtype, np.integer):
-            for v in offsets:
-                td = timedelta(**{self.offsets.unit.unit: v})
-
-                res = self.epoch + td
-
-                result = np.array([str(self.epoch +
-                                       timedelta(**{self.offsets.unit.unit: v}))
-                                   for v in offsets])
+            result = np.array([str(self.epoch +
+                                   timedelta(**{self.offsets.unit.unit: v}))
+                               for v in offsets])
         else:
             result = self.offsets.offsets
         return result
