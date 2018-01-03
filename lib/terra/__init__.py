@@ -505,7 +505,7 @@ class TemporalDatum(object):
             self.timeorigin = timeorigin
         else:
             pattern = re.compile('([0-9]+)-([0-9]+)-([0-9]+)'
-                                 'T([0-9]+):([0-9]+):([0-9\.]+)Z')
+                                 'T([0-9]+):([0-9]+):([0-9]+)\.?([0-9]+)Z')
             mch = pattern.match(timeorigin)
             if mch:
                 isg = terra.datetime.ISOGregorian()
@@ -514,7 +514,8 @@ class TemporalDatum(object):
                                                           int(mch.group(3)),
                                                           int(mch.group(4)),
                                                           int(mch.group(5)),
-                                                          float(mch.group(6)),
+                                                          int(mch.group(6)),
+                                                          int(mch.group(7)),
                                                           calendar=isg)
         self.name = name
 
