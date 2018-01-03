@@ -867,7 +867,8 @@ class EpochDateTimes(object):
         dts = self.datetimes()
         result = str(dts)
         if not self.offsets.offsets.shape or len(dts) == 1:
-            result = str(dts[0])
+            if not np.ma.is_masked(dts):
+                result = str(dts[0])
         return result
 
     def datetimes(self):
